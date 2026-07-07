@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, Plus, PhoneCall, Settings,
+  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -22,10 +23,17 @@ interface AppShellProps {
 }
 
 export function AppShell({ active, onChange, children }: AppShellProps) {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useState(() => {
+    setMounted(true);
+  });
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
+      <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
@@ -33,8 +41,18 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
             </div>
             <h1 className="text-xl font-bold">عقاري</h1>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden sm:block ml-2">نظام إدارة العقارات</span>
+            {mounted && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="rounded-full"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -52,7 +70,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
                     flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors
                     ${isActive
                       ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                     }
                   `}
                 >
@@ -71,7 +89,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-white py-4">
+      <footer className="border-t bg-background py-4">
         <div className="max-w-7xl mx-auto px-4 text-center text-xs text-muted-foreground">
           نظام عقاري &copy; {new Date().getFullYear()} — إدارة كراء وبيع العقارات
         </div>

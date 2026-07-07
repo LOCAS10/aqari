@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AppShell, TabId } from "@/components/app-shell";
@@ -65,9 +66,11 @@ function AppContent() {
 
 export default function Home() {
   return (
-    <QueryClientProvider client={qc}>
-      <AppContent />
-      <Toaster position="top-center" richColors />
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <QueryClientProvider client={qc}>
+        <AppContent />
+        <Toaster position="top-center" richColors />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
