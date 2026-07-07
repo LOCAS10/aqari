@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Property {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  propertyType    String   @default("APARTMENT") // APARTMENT, VILLA, LAND
+  transactionType String   @default("SALE")      // SALE, RENT
+  price           Float
+  area            Float?
+  location        String?
+  city            String?
+  address         String?
+  rooms           Int?
+  bathrooms       Int?
+  floor           Int?
+  features        String?  // JSON array string
+  status          String   @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD, RENTED
+  images          String?  // JSON array of URLs
+  videos          String?  // JSON array of URLs
+  audios          String?  // JSON array of URLs
+  contactPhone    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  inquiries       Inquiry[]
+}
+
+model Inquiry {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  callerName  String
+  callerPhone String
+  message     String?
+  status      String   @default("NEW") // NEW, CONTACTED, FOLLOW_UP, CLOSED
+  createdAt   DateTime @default(now())
+}

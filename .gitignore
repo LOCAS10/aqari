@@ -1,0 +1,10 @@
+node_modules/
+.next/
+db/
+*.log
+.env
+tool-results/
+.zscripts/
+scripts/
+skills/
+download/
