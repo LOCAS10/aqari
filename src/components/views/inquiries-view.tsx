@@ -579,7 +579,7 @@ export default function InquiriesView() {
 
       {/* ── Add Inquiry Dialog ──────────────────────────────────────────── */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -587,7 +587,7 @@ export default function InquiriesView() {
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleAddSubmit} className="space-y-4">
+          <form onSubmit={handleAddSubmit} className="space-y-4 overflow-y-auto flex-1 px-1">
             {/* Inquiry Type */}
             <div className="space-y-2">
               <Label>
