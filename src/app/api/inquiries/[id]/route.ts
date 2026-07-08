@@ -6,11 +6,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     await dbReady;
     const { id } = await params;
     const body = await req.json();
-    const { inquiry } = await inquiry.update({
+    const { inquiry: updatedInquiry } = await inquiry.update({
       where: { id },
       data: { status: body.status },
     });
-    return NextResponse.json({ inquiry });
+    return NextResponse.json({ inquiry: updatedInquiry });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
