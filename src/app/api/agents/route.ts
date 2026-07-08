@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agent } from '@/lib/db';
+import { agent, dbReady } from '@/lib/db';
 
 export async function GET() {
   try {
+    await dbReady;
     const { agents } = await agent.findMany();
     return NextResponse.json({ agents });
   } catch (e: any) {
@@ -12,6 +13,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    await dbReady;
     const body = await req.json();
     if (!body.name?.trim()) {
       return NextResponse.json({ error: 'يرجى إدخال اسم الوكيل' }, { status: 400 });

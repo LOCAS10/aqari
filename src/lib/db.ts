@@ -55,7 +55,11 @@ async function ensureTables() {
     // Column already exists, ignore
   }
 }
-ensureTables().catch(console.error);
+
+// Export a ready promise so API routes can await it
+export const dbReady = ensureTables().catch((e) => {
+  console.error('ensureTables error:', e);
+});
 
 // Simple query helper
 export async function query(sql: string, params: any[] = []) {

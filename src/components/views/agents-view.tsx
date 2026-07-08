@@ -93,8 +93,8 @@ export default function AgentsView() {
       toast.success(editTarget ? "تم تحديث الوكيل بنجاح" : "تم إضافة الوكيل بنجاح");
       closeDialog();
     },
-    onError: () => {
-      toast.error(editTarget ? "حدث خطأ أثناء تحديث الوكيل" : "حدث خطأ أثناء إضافة الوكيل");
+    onError: (err: Error) => {
+      toast.error(err.message || (editTarget ? "حدث خطأ أثناء تحديث الوكيل" : "حدث خطأ أثناء إضافة الوكيل"));
     },
   });
 
