@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { notification } from '@/lib/db';
+import { notification, dbReady } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
+    await dbReady;
     const { searchParams } = new URL(req.url);
     const agentId = searchParams.get('agentId') || '';
     const { notifications } = await notification.findMany({
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await dbReady;
     const body = await req.json();
     if (!body.agentId || !body.title?.trim()) {
       return NextResponse.json({ error: 'يرجى إدخال الوكيل والعنوان' }, { status: 400 });

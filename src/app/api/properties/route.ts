@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { property, inquiry } from '@/lib/db';
+import { property, inquiry, dbReady } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
+    await dbReady;
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || '';
     const transaction = searchParams.get('transaction') || '';
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await dbReady;
     const body = await req.json();
     const { property } = await property.create({
       data: {

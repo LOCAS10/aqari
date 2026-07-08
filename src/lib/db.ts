@@ -17,6 +17,7 @@ if (process.env.NODE_ENV !== 'production') globalForDb.db = libsql;
 
 // Ensure required tables exist
 async function ensureTables() {
+  // Create Agent table
   await libsql.execute(`
     CREATE TABLE IF NOT EXISTS Agent (
       id TEXT PRIMARY KEY,
@@ -25,6 +26,52 @@ async function ensureTables() {
       createdAt TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Create Property table if not exists
+  await libsql.execute(`
+    CREATE TABLE IF NOT EXISTS Property (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      propertyType TEXT NOT NULL DEFAULT 'APARTMENT',
+      transactionType TEXT NOT NULL DEFAULT 'SALE',
+      price REAL NOT NULL DEFAULT 0,
+      area REAL,
+      location TEXT,
+      city TEXT,
+      address TEXT,
+      rooms INTEGER,
+      bathrooms INTEGER,
+      floor INTEGER,
+      features TEXT,
+      status TEXT NOT NULL DEFAULT 'AVAILABLE',
+      images TEXT,
+      videos TEXT,
+      audios TEXT,
+      contactPhone TEXT,
+      agentId TEXT,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Create Inquiry table if not exists
+  await libsql.execute(`
+    CREATE TABLE IF NOT EXISTS Inquiry (
+      id TEXT PRIMARY KEY,
+      propertyId TEXT,
+      callerName TEXT NOT NULL,
+      callerPhone TEXT NOT NULL,
+      message TEXT,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      inquiryType TEXT DEFAULT 'REQUEST',
+      inquirySubType TEXT DEFAULT NULL,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (propertyId) REFERENCES Property(id)
+    )
+  `);
+
+  // Create Notification table
   await libsql.execute(`
     CREATE TABLE IF NOT EXISTS Notification (
       id TEXT PRIMARY KEY,
@@ -37,22 +84,15 @@ async function ensureTables() {
       FOREIGN KEY (agentId) REFERENCES Agent(id)
     )
   `);
-  // Add agentId column to Property if it doesn't exist
-  try {
-    await libsql.execute(`ALTER TABLE Property ADD COLUMN agentId TEXT REFERENCES Agent(id)`);
-  } catch (e: any) {
-    // Column already exists, ignore
-  }
-  // Add inquiryType and inquirySubType columns to Inquiry if they don't exist
-  try {
-    await libsql.execute(`ALTER TABLE Inquiry ADD COLUMN inquiryType TEXT DEFAULT 'REQUEST'`);
-  } catch (e: any) {
-    // Column already exists, ignore
-  }
-  try {
-    await libsql.execute(`ALTER TABLE Inquiry ADD COLUMN inquirySubType TEXT DEFAULT NULL`);
-  } catch (e: any) {
-    // Column already exists, ignore
+
+  // Add missing columns safely (ignore errors if already exist)
+  const alterStatements = [
+    "ALTER TABLE Property ADD COLUMN agentId TEXT",
+    "ALTER TABLE Inquiry ADD COLUMN inquiryType TEXT DEFAULT 'REQUEST'",
+    "ALTER TABLE Inquiry ADD COLUMN inquirySubType TEXT DEFAULT NULL",
+  ];
+  for (const sql of alterStatements) {
+    try { await libsql.execute(sql); } catch (e: any) { /* column exists, ignore */ }
   }
 }
 

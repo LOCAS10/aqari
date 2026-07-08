@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { property } from '@/lib/db';
+import { property, dbReady } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await dbReady;
     const { id } = await params;
     const result = await property.findUnique({
       where: { id },
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await dbReady;
     const { id } = await params;
     const body = await req.json();
     const data: any = {};
@@ -42,6 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await dbReady;
     const { id } = await params;
     await property.delete({ where: { id } });
     return NextResponse.json({ ok: true });

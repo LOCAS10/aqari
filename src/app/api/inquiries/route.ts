@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inquiry } from '@/lib/db';
+import { inquiry, dbReady } from '@/lib/db';
 
 export async function GET() {
   try {
+    await dbReady;
     const { inquiries } = await inquiry.findMany({
       orderBy: { createdAt: 'desc' },
       include: { property: true },
@@ -15,6 +16,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    await dbReady;
     const body = await req.json();
     const { inquiry } = await inquiry.create({
       data: {
