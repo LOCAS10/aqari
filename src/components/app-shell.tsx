@@ -59,7 +59,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
         </div>
 
         {/* Navigation Tabs */}
-        <nav className="max-w-7xl mx-auto px-4">
+        <nav className="max-w-7xl mx-auto px-4" dir="rtl">
           <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none">
             {tabs.map((tab) => {
               const Icon = tab.icon;
