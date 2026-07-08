@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { inquiry } from '@/lib/db';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const inquiry = await db.inquiry.update({
+    const { inquiry } = await inquiry.update({
       where: { id },
       data: { status: body.status },
     });
@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await db.inquiry.delete({ where: { id } });
+    await inquiry.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

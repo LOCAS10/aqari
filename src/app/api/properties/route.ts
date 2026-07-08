@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { property, inquiry } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
     }
     if (minArea) where.area = { gte: parseFloat(minArea) };
 
-    const properties = await db.property.findMany({
+    const { properties } = await property.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { inquiries: true } } },
+      include: { _count: { inquiries: true } },
     });
 
     return NextResponse.json({ properties });
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const property = await db.property.create({
+    const { property } = await property.create({
       data: {
         title: body.title,
         description: body.description || null,

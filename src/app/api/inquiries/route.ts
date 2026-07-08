@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { inquiry } from '@/lib/db';
 
 export async function GET() {
   try {
-    const inquiries = await db.inquiry.findMany({
+    const { inquiries } = await inquiry.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { property: { select: { id: true, title: true, propertyType: true } } },
+      include: { property: true },
     });
     return NextResponse.json({ inquiries });
   } catch (e: any) {
@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const inquiry = await db.inquiry.create({
+    const { inquiry } = await inquiry.create({
       data: {
         propertyId: body.propertyId,
         callerName: body.callerName,

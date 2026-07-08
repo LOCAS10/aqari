@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { property } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const property = await db.property.findUnique({
+    const result = await property.findUnique({
       where: { id },
-      include: { inquiries: { orderBy: { createdAt: 'desc' } } },
+      include: { inquiries: true },
     });
-    if (!property) return NextResponse.json({ error: 'غير موجود' }, { status: 404 });
-    return NextResponse.json({ property });
+    if (!result) return NextResponse.json({ error: 'غير موجود' }, { status: 404 });
+    return NextResponse.json(result);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
@@ -33,7 +33,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.videos !== undefined) data.videos = JSON.stringify(body.videos);
     if (body.audios !== undefined) data.audios = JSON.stringify(body.audios);
 
-    const property = await db.property.update({ where: { id }, data });
+    const { property } = await property.update({ where: { id }, data });
     return NextResponse.json({ property });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    await db.property.delete({ where: { id } });
+    await property.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
