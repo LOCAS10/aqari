@@ -102,7 +102,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-50 bg-black/50 md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -110,8 +110,8 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 right-0 z-50 h-full w-56 bg-card border-l shadow-xl transition-transform duration-200 md:hidden",
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          "fixed top-0 right-0 z-[60] h-full w-56 bg-card border-l shadow-xl md:hidden",
+          mobileMenuOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         )}
       >
         {sidebarContent}
@@ -120,12 +120,12 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-30 bg-background border-b px-4 h-14 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-40 bg-background border-b px-4 h-14 flex items-center justify-between">
           <h1 className="text-lg font-bold">عقاري</h1>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
