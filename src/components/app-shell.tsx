@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
@@ -28,6 +28,11 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-close mobile menu when tab changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [active]);
 
   useState(() => {
     setMounted(true);
