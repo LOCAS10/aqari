@@ -62,6 +62,7 @@ interface PropertyPayload {
   features: string[];
   status: string;
   contactPhone: string;
+  agentId: string | null;
   images: string[];
   videos: string[];
   audios: string[];
@@ -213,6 +214,7 @@ export default function PropertyForm({
   const [features, setFeatures] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [agentId, setAgentId] = useState("");
 
   // -- media state ----------------------------------------------------------
   const [images, setImages] = useState<UploadedFile[]>([]);
@@ -237,6 +239,18 @@ export default function PropertyForm({
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   // =========================================================================
+  // Fetch agents for dropdown
+  const { data: agentsData } = useQuery({
+    queryKey: ["agents"],
+    queryFn: async () => {
+      const res = await fetch("/api/agents");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.agents || [];
+    },
+  });
+  const agentsList = agentsData || [];
+
   // Fetch property for editing
   // =========================================================================
   const { data: editProperty, isLoading: isLoadingProperty } = useQuery({
@@ -268,6 +282,7 @@ export default function PropertyForm({
       setFeatures(editProperty.features ?? []);
       setStatus(editProperty.status ?? "");
       setContactPhone(editProperty.contactPhone ?? "");
+      setAgentId(editProperty.agentId ?? "");
       setImages(
         (editProperty.images ?? []).map((url: string, i: number) => ({
           url,
@@ -582,6 +597,7 @@ export default function PropertyForm({
       features,
       status,
       contactPhone: contactPhone.trim(),
+      agentId: agentId || null,
       images: images.map((i) => i.url).filter(Boolean),
       videos: videos.map((v) => v.url).filter(Boolean),
       audios: audios.map((a) => a.url).filter(Boolean),
@@ -1182,6 +1198,26 @@ export default function PropertyForm({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            {/* ---------------------------------------------------------------- */}
+            {/* Agent Selection                                                   */}
+            {/* ---------------------------------------------------------------- */}
+            <div className="space-y-2">
+              <Label>الوكيل</Label>
+              <Select value={agentId || "NONE"} onValueChange={(v) => setAgentId(v === "NONE" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الوكيل (اختياري)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">بدون وكيل</SelectItem>
+                  {agentsList.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* ---------------------------------------------------------------- */}

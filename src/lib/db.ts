@@ -15,6 +15,37 @@ export const libsql = globalForDb.db ?? createClient(
 
 if (process.env.NODE_ENV !== 'production') globalForDb.db = libsql;
 
+// Ensure required tables exist
+async function ensureTables() {
+  await libsql.execute(`
+    CREATE TABLE IF NOT EXISTS Agent (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      phone TEXT,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await libsql.execute(`
+    CREATE TABLE IF NOT EXISTS Notification (
+      id TEXT PRIMARY KEY,
+      agentId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      type TEXT NOT NULL DEFAULT 'INFO',
+      isRead INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (agentId) REFERENCES Agent(id)
+    )
+  `);
+  // Add agentId column to Property if it doesn't exist
+  try {
+    await libsql.execute(`ALTER TABLE Property ADD COLUMN agentId TEXT REFERENCES Agent(id)`);
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
+}
+ensureTables().catch(console.error);
+
 // Simple query helper
 export async function query(sql: string, params: any[] = []) {
   return libsql.execute({ sql, args: params });
@@ -84,9 +115,9 @@ export const property = {
     const d = opts.data;
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
     await query(
-      `INSERT INTO Property (id, title, description, propertyType, transactionType, price, area, location, city, address, rooms, bathrooms, floor, features, status, images, videos, audios, contactPhone)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, d.title, d.description, d.propertyType, d.transactionType, d.price, d.area, d.location, d.city, d.address, d.rooms, d.bathrooms, d.floor, d.features, d.status, d.images, d.videos, d.audios, d.contactPhone]
+      `INSERT INTO Property (id, title, description, propertyType, transactionType, price, area, location, city, address, rooms, bathrooms, floor, features, status, images, videos, audios, contactPhone, agentId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, d.title, d.description, d.propertyType, d.transactionType, d.price, d.area, d.location, d.city, d.address, d.rooms, d.bathrooms, d.floor, d.features, d.status, d.images, d.videos, d.audios, d.contactPhone, d.agentId || null]
     );
     const result = await query('SELECT * FROM Property WHERE id = ?', [id]);
     const property = { ...result.rows[0], price: Number(result.rows[0].price) };
@@ -115,6 +146,7 @@ export const property = {
     if (d.videos !== undefined) { fields.push('videos = ?'); params.push(d.videos); }
     if (d.audios !== undefined) { fields.push('audios = ?'); params.push(d.audios); }
     if (d.contactPhone !== undefined) { fields.push('contactPhone = ?'); params.push(d.contactPhone); }
+    if (d.agentId !== undefined) { fields.push('agentId = ?'); params.push(d.agentId || null); }
     fields.push("updatedAt = datetime('now')");
 
     params.push(opts.where.id);
@@ -181,6 +213,95 @@ export const inquiry = {
 
   async delete(opts: { where: { id: string } }) {
     await query('DELETE FROM Inquiry WHERE id = ?', [opts.where.id]);
+    return {};
+  },
+};
+
+// Agent helpers
+export const agent = {
+  async findMany() {
+    const result = await query('SELECT * FROM Agent ORDER BY name ASC');
+    const agents = result.rows.map((r: any) => ({ ...r }));
+    // Get unread notification count for each agent
+    for (const a of agents) {
+      const countResult = await query('SELECT COUNT(*) as c FROM Notification WHERE agentId = ? AND isRead = 0', [a.id]);
+      (a as any).unreadCount = Number(countResult.rows[0].c);
+      // Get property count
+      const propCountResult = await query('SELECT COUNT(*) as c FROM Property WHERE agentId = ?', [a.id]);
+      (a as any).propertyCount = Number(propCountResult.rows[0].c);
+    }
+    return { agents };
+  },
+
+  async findUnique(opts: { where: { id: string } }) {
+    const result = await query('SELECT * FROM Agent WHERE id = ?', [opts.where.id]);
+    if (!result.rows.length) return null;
+    return { agent: result.rows[0] };
+  },
+
+  async create(opts: { data: any }) {
+    const d = opts.data;
+    const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    await query(
+      `INSERT INTO Agent (id, name, phone, createdAt) VALUES (?, ?, ?, datetime('now'))`,
+      [id, d.name, d.phone]
+    );
+    const result = await query('SELECT * FROM Agent WHERE id = ?', [id]);
+    return { agent: result.rows[0] };
+  },
+
+  async update(opts: { where: { id: string }; data: any }) {
+    const d = opts.data;
+    const fields: string[] = [];
+    const params: any[] = [];
+    if (d.name !== undefined) { fields.push('name = ?'); params.push(d.name); }
+    if (d.phone !== undefined) { fields.push('phone = ?'); params.push(d.phone); }
+
+    if (!fields.length) return {};
+    params.push(opts.where.id);
+    await query(`UPDATE Agent SET ${fields.join(', ')} WHERE id = ?`, params);
+    const result = await query('SELECT * FROM Agent WHERE id = ?', [opts.where.id]);
+    return { agent: result.rows[0] };
+  },
+
+  async delete(opts: { where: { id: string } }) {
+    await query('DELETE FROM Notification WHERE agentId = ?', [opts.where.id]);
+    await query('UPDATE Property SET agentId = NULL WHERE agentId = ?', [opts.where.id]);
+    await query('DELETE FROM Agent WHERE id = ?', [opts.where.id]);
+    return {};
+  },
+};
+
+// Notification helpers
+export const notification = {
+  async findMany(opts: { agentId?: string } = {}) {
+    let sql = `SELECT n.*, a.name as agentName FROM Notification n LEFT JOIN Agent a ON n.agentId = a.id`;
+    const params: any[] = [];
+    if (opts.agentId) { sql += ' WHERE n.agentId = ?'; params.push(opts.agentId); }
+    sql += ' ORDER BY n.createdAt DESC';
+    const result = await query(sql, params);
+    return { notifications: result.rows };
+  },
+
+  async create(opts: { data: any }) {
+    const d = opts.data;
+    const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    await query(
+      `INSERT INTO Notification (id, agentId, title, message, type, isRead, createdAt) VALUES (?, ?, ?, ?, ?, 0, datetime('now'))`,
+      [id, d.agentId, d.title, d.message, d.type || 'INFO']
+    );
+    const result = await query('SELECT * FROM Notification WHERE id = ?', [id]);
+    return { notification: result.rows[0] };
+  },
+
+  async markRead(opts: { where: { id: string } }) {
+    await query('UPDATE Notification SET isRead = 1 WHERE id = ?', [opts.where.id]);
+    const result = await query('SELECT * FROM Notification WHERE id = ?', [opts.where.id]);
+    return { notification: result.rows[0] };
+  },
+
+  async delete(opts: { where: { id: string } }) {
+    await query('DELETE FROM Notification WHERE id = ?', [opts.where.id]);
     return {};
   },
 };

@@ -21,11 +21,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     const data: any = {};
     const updatable = ['title','description','propertyType','transactionType','price','area',
-      'location','city','address','rooms','bathrooms','floor','status','contactPhone'];
+      'location','city','address','rooms','bathrooms','floor','status','contactPhone','agentId'];
     for (const key of updatable) {
       if (body[key] !== undefined) {
         data[key] = key === 'price' || key === 'area' || key === 'rooms' || key === 'bathrooms' || key === 'floor'
-          ? (body[key] ? parseFloat(body[key]) : null) : body[key];
+          ? (body[key] ? parseFloat(body[key]) : null) : (key === 'agentId' ? (body[key] || null) : body[key]);
       }
     }
     if (body.features !== undefined) data.features = JSON.stringify(body.features);

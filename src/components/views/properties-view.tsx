@@ -24,6 +24,7 @@ import {
   ChevronRight,
   X,
   Home,
+  Users,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -107,6 +108,7 @@ interface Property {
   features: string[];
   status: "AVAILABLE" | "RESERVED" | "SOLD" | "RENTED";
   contactPhone: string | null;
+  agentId: string | null;
   images: string[];
   videos: string[];
   audios: string[];
@@ -114,6 +116,11 @@ interface Property {
   _count?: { inquiries: number };
   createdAt: string;
   updatedAt: string;
+}
+
+interface Agent {
+  id: string;
+  name: string;
 }
 
 function mapProperty(raw: any): Property {
@@ -223,6 +230,24 @@ export function PropertiesView({ onSelectProperty, onEdit }: PropertiesViewProps
       return (json.properties || []).map(mapProperty);
     },
   });
+
+  // ---- Fetch agents for name mapping ----
+  const { data: agentsMapData } = useQuery<Agent[]>({
+    queryKey: ["agents"],
+    queryFn: async () => {
+      const res = await fetch("/api/agents");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.agents || [];
+    },
+  });
+  const agentsMap = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const a of (agentsMapData || [])) {
+      map[a.id] = a.name;
+    }
+    return map;
+  }, [agentsMapData]);
 
   // ---- Delete mutation ----
   const deleteMutation = useMutation({
@@ -430,6 +455,7 @@ export function PropertiesView({ onSelectProperty, onEdit }: PropertiesViewProps
                   <TableHead className="text-right">المساحة</TableHead>
                   <TableHead className="text-right">المدينة</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">الوكيل</TableHead>
                   <TableHead className="text-right">استفسارات</TableHead>
                   <TableHead className="text-right">إجراءات</TableHead>
                 </TableRow>
@@ -457,6 +483,9 @@ export function PropertiesView({ onSelectProperty, onEdit }: PropertiesViewProps
                     </TableCell>
                     <TableCell>{property.city}</TableCell>
                     <TableCell>{statusBadge(property.status)}</TableCell>
+                    <TableCell className="text-sm">
+                      {property.agentId ? (agentsMap[property.agentId] || "—") : "—"}
+                    </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1 text-sm">
                         {property.inquiryCount ?? property.inquiries?.length ?? 0}
@@ -622,6 +651,24 @@ export function PropertyDetailView({
     },
     enabled: !!propertyId,
   });
+
+  // ---- Fetch agents for name mapping ----
+  const { data: detailAgentsData } = useQuery<Agent[]>({
+    queryKey: ["agents"],
+    queryFn: async () => {
+      const res = await fetch("/api/agents");
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.agents || [];
+    },
+  });
+  const detailAgentsMap = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const a of (detailAgentsData || [])) {
+      map[a.id] = a.name;
+    }
+    return map;
+  }, [detailAgentsData]);
 
   // ---- Image gallery state ----
   const [api, setApi] = React.useState<CarouselApi>();
@@ -848,6 +895,17 @@ export function PropertyDetailView({
                   <p className="text-muted-foreground">الهاتف</p>
                   <p className="font-medium" dir="ltr">
                     {property.contactPhone}
+                  </p>
+                </div>
+              </div>
+            )}
+            {property.agentId && (
+              <div className="flex items-center gap-2 text-sm">
+                <Users className="size-4 text-muted-foreground" />
+                <div>
+                  <p className="text-muted-foreground">الوكيل</p>
+                  <p className="font-medium">
+                    {detailAgentsMap[property.agentId] || "—"}
                   </p>
                 </div>
               </div>

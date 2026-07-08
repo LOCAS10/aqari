@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
         videos: body.videos ? JSON.stringify(body.videos) : null,
         audios: body.audios ? JSON.stringify(body.audios) : null,
         contactPhone: body.contactPhone || null,
+        agentId: body.agentId || null,
       },
     });
     return NextResponse.json({ property });

@@ -9,6 +9,8 @@ import DashboardView from "@/components/views/dashboard-view";
 import { PropertiesView, PropertyDetailView } from "@/components/views/properties-view";
 import PropertyForm from "@/components/views/property-form";
 import InquiriesView from "@/components/views/inquiries-view";
+import AgentsView from "@/components/views/agents-view";
+import NotificationsView from "@/components/views/notifications-view";
 
 const qc = new QueryClient();
 
@@ -60,6 +62,8 @@ function AppContent() {
         />
       )}
       {tab === "inquiries" && <InquiriesView />}
+      {tab === "agents" && <AgentsView />}
+      {tab === "notifications" && <NotificationsView />}
     </AppShell>
   );
 }

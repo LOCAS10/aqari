@@ -3,17 +3,19 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun,
+  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun, Users, Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type TabId = "dashboard" | "properties" | "add-property" | "inquiries";
+export type TabId = "dashboard" | "properties" | "add-property" | "inquiries" | "agents" | "notifications";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
   { id: "properties", label: "العقارات", icon: Building2 },
   { id: "add-property", label: "إضافة عقار", icon: Plus },
   { id: "inquiries", label: "الاستفسارات", icon: PhoneCall },
+  { id: "agents" as TabId, label: "الوكلاء", icon: Users },
+  { id: "notifications" as TabId, label: "التنبيهات", icon: Bell },
 ];
 
 interface AppShellProps {
@@ -58,7 +60,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
 
         {/* Navigation Tabs */}
         <nav className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none flex-row-reverse">
+          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = active === tab.id;
