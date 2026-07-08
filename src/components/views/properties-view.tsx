@@ -7,6 +7,7 @@ import {
   Building2,
   Search,
   Pencil,
+  Plus,
   Trash2,
   LayoutGrid,
   List,
@@ -205,9 +206,10 @@ function ImagePlaceholder({ className }: { className?: string }) {
 interface PropertiesViewProps {
   onSelectProperty: (id: string) => void;
   onEdit?: (id: string) => void;
+  onAddProperty?: () => void;
 }
 
-export function PropertiesView({ onSelectProperty, onEdit }: PropertiesViewProps) {
+export function PropertiesView({ onSelectProperty, onEdit, onAddProperty }: PropertiesViewProps) {
   const queryClient = useQueryClient();
 
   // ---- State ----
@@ -329,10 +331,18 @@ export function PropertiesView({ onSelectProperty, onEdit }: PropertiesViewProps
       {/* ========== Filter bar ========== */}
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="size-5" />
-            العقارات
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="size-5" />
+              العقارات
+            </CardTitle>
+            {onAddProperty && (
+              <Button onClick={onAddProperty} className="gap-2">
+                <Plus className="h-4 w-4" />
+                إضافة عقار
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-3">

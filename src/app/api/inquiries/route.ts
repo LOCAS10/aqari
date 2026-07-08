@@ -18,11 +18,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { inquiry } = await inquiry.create({
       data: {
-        propertyId: body.propertyId,
+        propertyId: body.propertyId || null,
         callerName: body.callerName,
         callerPhone: body.callerPhone,
         message: body.message || null,
         status: body.status || 'NEW',
+        inquiryType: body.inquiryType || 'REQUEST',
+        inquirySubType: body.inquirySubType || null,
       },
     });
     return NextResponse.json({ inquiry });

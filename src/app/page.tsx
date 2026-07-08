@@ -46,6 +46,7 @@ function AppContent() {
         <PropertiesView
           onSelectProperty={handleSelectProperty}
           onEdit={handleEditProperty}
+          onAddProperty={() => setTab("add-property")}
         />
       )}
       {tab === "properties" && selectedPropertyId && (

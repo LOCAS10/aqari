@@ -43,6 +43,17 @@ async function ensureTables() {
   } catch (e: any) {
     // Column already exists, ignore
   }
+  // Add inquiryType and inquirySubType columns to Inquiry if they don't exist
+  try {
+    await libsql.execute(`ALTER TABLE Inquiry ADD COLUMN inquiryType TEXT DEFAULT 'REQUEST'`);
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
+  try {
+    await libsql.execute(`ALTER TABLE Inquiry ADD COLUMN inquirySubType TEXT DEFAULT NULL`);
+  } catch (e: any) {
+    // Column already exists, ignore
+  }
 }
 ensureTables().catch(console.error);
 
@@ -188,8 +199,8 @@ export const inquiry = {
     const d = opts.data;
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
     await query(
-      `INSERT INTO Inquiry (id, propertyId, callerName, callerPhone, message, status) VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, d.propertyId, d.callerName, d.callerPhone, d.message, d.status]
+      `INSERT INTO Inquiry (id, propertyId, callerName, callerPhone, message, status, inquiryType, inquirySubType) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, d.propertyId || null, d.callerName, d.callerPhone, d.message, d.status || 'NEW', d.inquiryType || 'REQUEST', d.inquirySubType || null]
     );
     const result = await query('SELECT * FROM Inquiry WHERE id = ?', [id]);
     return { inquiry: result.rows[0] };

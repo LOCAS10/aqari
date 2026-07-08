@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
+  LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,6 @@ export type TabId = "dashboard" | "properties" | "add-property" | "inquiries" | 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
   { id: "properties", label: "العقارات", icon: Building2 },
-  { id: "add-property", label: "إضافة عقار", icon: Plus },
   { id: "inquiries", label: "الاستفسارات", icon: PhoneCall },
   { id: "agents" as TabId, label: "الوكلاء", icon: Users },
   { id: "notifications" as TabId, label: "التنبيهات", icon: Bell },
@@ -94,7 +93,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
   );
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground">
+    <div className="min-h-screen flex flex-row-reverse bg-background text-foreground">
       {/* Desktop Sidebar - Right Side */}
       <aside className="hidden md:flex w-56 border-l bg-card flex-col shrink-0 sticky top-0 h-screen">
         {sidebarContent}

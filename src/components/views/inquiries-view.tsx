@@ -49,6 +49,8 @@ import {
   User,
   Building2,
   MessageSquare,
+  HandMetal,
+  ArrowDownUp,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -56,6 +58,8 @@ import { toast } from "sonner";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type InquiryStatus = "NEW" | "CONTACTED" | "FOLLOW_UP" | "CLOSED";
+type InquiryType = "REQUEST" | "OFFER";
+type InquirySubType = "SALE" | "RENT";
 
 interface Property {
   id: string;
@@ -70,6 +74,8 @@ interface Inquiry {
   callerPhone: string;
   message: string;
   status: InquiryStatus;
+  inquiryType: string;
+  inquirySubType: string;
   createdAt: string;
   property: Property;
 }
@@ -93,6 +99,16 @@ const STATUS_LIST: InquiryStatus[] = [
   "CLOSED",
 ];
 
+const INQUIRY_TYPE_CONFIG: Record<InquiryType, { label: string; className: string; icon: React.ElementType }> = {
+  REQUEST: { label: "طلب", className: "bg-indigo-100 text-indigo-700", icon: HandMetal },
+  OFFER: { label: "عرض", className: "bg-orange-100 text-orange-700", icon: ArrowDownUp },
+};
+
+const INQUIRY_SUBTYPE_CONFIG: Record<InquirySubType, { label: string; className: string }> = {
+  SALE: { label: "بيع", className: "bg-red-50 text-red-700 border-red-200" },
+  RENT: { label: "كراء", className: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+};
+
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString("ar-DZ");
 
@@ -112,6 +128,8 @@ export default function InquiriesView() {
     callerName: "",
     callerPhone: "",
     message: "",
+    inquiryType: "" as InquiryType | "",
+    inquirySubType: "" as InquirySubType | "",
   });
 
   // Detail dialog
@@ -162,6 +180,8 @@ export default function InquiriesView() {
       callerName: string;
       callerPhone: string;
       message: string;
+      inquiryType: string;
+      inquirySubType: string;
     }) =>
       fetch("/api/inquiries", {
         method: "POST",
@@ -175,7 +195,7 @@ export default function InquiriesView() {
       queryClient.invalidateQueries({ queryKey: ["inquiries"] });
       toast.success("تم إضافة الاستفسار بنجاح");
       setAddOpen(false);
-      setAddForm({ propertyId: "", callerName: "", callerPhone: "", message: "" });
+      setAddForm({ propertyId: "", callerName: "", callerPhone: "", message: "", inquiryType: "", inquirySubType: "" });
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -225,7 +245,22 @@ export default function InquiriesView() {
       toast.error("يرجى تعبئة الحقول المطلوبة");
       return;
     }
-    addMutation.mutate(addForm);
+    if (!addForm.inquiryType) {
+      toast.error("يرجى اختيار نوع الاستفسار (طلب أو عرض)");
+      return;
+    }
+    if (!addForm.inquirySubType) {
+      toast.error("يرجى اختيار النوع الفرعي");
+      return;
+    }
+    addMutation.mutate({
+      propertyId: addForm.propertyId,
+      callerName: addForm.callerName,
+      callerPhone: addForm.callerPhone,
+      message: addForm.message,
+      inquiryType: addForm.inquiryType,
+      inquirySubType: addForm.inquirySubType,
+    });
   };
 
   const handleStatusChange = (id: string, status: InquiryStatus) => {
@@ -234,6 +269,27 @@ export default function InquiriesView() {
 
   const handleDelete = (id: string) => {
     deleteMutation.mutate(id);
+  };
+
+  // Helper to get inquiry type/subtype labels
+  const getTypeLabel = (type: string) => {
+    const t = type as InquiryType;
+    return INQUIRY_TYPE_CONFIG[t]?.label || type;
+  };
+
+  const getTypeClass = (type: string) => {
+    const t = type as InquiryType;
+    return INQUIRY_TYPE_CONFIG[t]?.className || "";
+  };
+
+  const getSubTypeLabel = (subType: string) => {
+    const s = subType as InquirySubType;
+    return INQUIRY_SUBTYPE_CONFIG[s]?.label || subType;
+  };
+
+  const getSubTypeClass = (subType: string) => {
+    const s = subType as InquirySubType;
+    return INQUIRY_SUBTYPE_CONFIG[s]?.className || "";
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -321,13 +377,14 @@ export default function InquiriesView() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[160px]">العقار</TableHead>
+                    <TableHead className="min-w-[130px]">النوع</TableHead>
+                    <TableHead className="min-w-[150px]">العقار</TableHead>
                     <TableHead className="min-w-[120px]">المتصل</TableHead>
                     <TableHead className="min-w-[130px]">الهاتف</TableHead>
-                    <TableHead className="min-w-[200px]">الرسالة</TableHead>
-                    <TableHead className="min-w-[120px]">الحالة</TableHead>
+                    <TableHead className="min-w-[160px]">الرسالة</TableHead>
+                    <TableHead className="min-w-[110px]">الحالة</TableHead>
                     <TableHead className="min-w-[110px]">التاريخ</TableHead>
-                    <TableHead className="min-w-[140px] text-center">
+                    <TableHead className="min-w-[120px] text-center">
                       إجراءات
                     </TableHead>
                   </TableRow>
@@ -337,10 +394,32 @@ export default function InquiriesView() {
                     const sc = STATUS_CONFIG[inq.status];
                     return (
                       <TableRow key={inq.id}>
+                        {/* Type & SubType */}
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              variant="outline"
+                              className={`w-fit text-xs font-medium ${getTypeClass(inq.inquiryType)}`}
+                            >
+                              {getTypeLabel(inq.inquiryType)}
+                            </Badge>
+                            {inq.inquirySubType && (
+                              <Badge
+                                variant="outline"
+                                className={`w-fit text-xs ${getSubTypeClass(inq.inquirySubType)}`}
+                              >
+                                {inq.inquiryType === "REQUEST"
+                                  ? `طلب ${getSubTypeLabel(inq.inquirySubType)}`
+                                  : `عرض ${getSubTypeLabel(inq.inquirySubType)}`}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+
                         {/* Property */}
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="font-medium">
+                            <span className="font-medium text-sm">
                               {inq.property?.title ?? "—"}
                             </span>
                             {inq.property?.propertyType && (
@@ -356,18 +435,18 @@ export default function InquiriesView() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            {inq.callerName}
+                            <span className="text-sm">{inq.callerName}</span>
                           </div>
                         </TableCell>
 
                         {/* Phone */}
-                        <TableCell dir="ltr" className="text-right">
+                        <TableCell dir="ltr" className="text-right text-sm">
                           {inq.callerPhone}
                         </TableCell>
 
                         {/* Message */}
                         <TableCell>
-                          <p className="line-clamp-2 text-sm text-muted-foreground max-w-[260px]">
+                          <p className="line-clamp-2 text-sm text-muted-foreground max-w-[200px]">
                             {inq.message || "—"}
                           </p>
                         </TableCell>
@@ -476,9 +555,81 @@ export default function InquiriesView() {
           </DialogHeader>
 
           <form onSubmit={handleAddSubmit} className="space-y-4">
-            {/* Property select */}
+            {/* Inquiry Type */}
             <div className="space-y-2">
-              <Label>اختر العقار</Label>
+              <Label>
+                نوع الاستفسار <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={addForm.inquiryType}
+                onValueChange={(v) =>
+                  setAddForm((prev) => ({ ...prev, inquiryType: v as InquiryType, inquirySubType: "" }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع الاستفسار…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="REQUEST">
+                    <div className="flex items-center gap-2">
+                      <HandMetal className="h-4 w-4" />
+                      طلب
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="OFFER">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownUp className="h-4 w-4" />
+                      عرض
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Inquiry SubType */}
+            {addForm.inquiryType && (
+              <div className="space-y-2">
+                <Label>
+                  {addForm.inquiryType === "REQUEST"
+                    ? "نوع الطلب"
+                    : "نوع العرض"}{" "}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={addForm.inquirySubType}
+                  onValueChange={(v) =>
+                    setAddForm((prev) => ({ ...prev, inquirySubType: v as InquirySubType }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        addForm.inquiryType === "REQUEST"
+                          ? "اختر نوع الطلب…"
+                          : "اختر نوع العرض…"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {addForm.inquiryType === "REQUEST" ? (
+                      <>
+                        <SelectItem value="SALE">طلب شراء</SelectItem>
+                        <SelectItem value="RENT">طلب كراء</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="RENT">عرض كراء</SelectItem>
+                        <SelectItem value="SALE">عرض بيع</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Property select (optional) */}
+            <div className="space-y-2">
+              <Label>العقار (اختياري)</Label>
               <Select
                 value={addForm.propertyId}
                 onValueChange={(v) =>
@@ -587,21 +738,49 @@ export default function InquiriesView() {
               </DialogHeader>
 
               <div className="space-y-5">
-                {/* Property info */}
+                {/* Inquiry Type Info */}
                 <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
                   <div className="flex items-center gap-2 text-sm font-medium">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    معلومات العقار
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    نوع الاستفسار
                   </div>
-                  <p className="font-semibold">
-                    {detailInquiry.property?.title ?? "—"}
-                  </p>
-                  {detailInquiry.property?.propertyType && (
-                    <Badge variant="secondary" className="text-xs">
-                      {detailInquiry.property.propertyType}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-medium ${getTypeClass(detailInquiry.inquiryType)}`}
+                    >
+                      {getTypeLabel(detailInquiry.inquiryType)}
                     </Badge>
-                  )}
+                    {detailInquiry.inquirySubType && (
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${getSubTypeClass(detailInquiry.inquirySubType)}`}
+                      >
+                        {detailInquiry.inquiryType === "REQUEST"
+                          ? `طلب ${getSubTypeLabel(detailInquiry.inquirySubType)}`
+                          : `عرض ${getSubTypeLabel(detailInquiry.inquirySubType)}`}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+
+                {/* Property info */}
+                {detailInquiry.property && (
+                  <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      معلومات العقار
+                    </div>
+                    <p className="font-semibold">
+                      {detailInquiry.property?.title ?? "—"}
+                    </p>
+                    {detailInquiry.property?.propertyType && (
+                      <Badge variant="secondary" className="text-xs">
+                        {detailInquiry.property.propertyType}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Caller info */}
                 <div className="grid grid-cols-2 gap-4">
