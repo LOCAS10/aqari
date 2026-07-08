@@ -128,7 +128,11 @@ const formatDate = (d: string) =>
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function InquiriesView() {
+interface InquiriesViewProps {
+  filterType?: "REQUEST" | "OFFER";
+}
+
+export default function InquiriesView({ filterType }: InquiriesViewProps) {
   const queryClient = useQueryClient();
 
   // ── Local state ──────────────────────────────────────────────────────────
@@ -174,6 +178,7 @@ export default function InquiriesView() {
   const newCount = inquiries.filter((i) => i.status === "NEW").length;
 
   const filtered = inquiries.filter((inq) => {
+    const matchesType = !filterType || inq.inquiryType === filterType;
     const matchesStatus =
       statusFilter === "ALL" || inq.status === statusFilter;
 
@@ -185,7 +190,7 @@ export default function InquiriesView() {
       (inq.message ?? "").toLowerCase().includes(term) ||
       inq.property?.title.toLowerCase().includes(term);
 
-    return matchesStatus && matchesSearch;
+    return matchesType && matchesStatus && matchesSearch;
   });
 
   // ── Mutations ────────────────────────────────────────────────────────────
@@ -319,7 +324,7 @@ export default function InquiriesView() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              الاستفسارات والمكالمات
+              {filterType === "REQUEST" ? "الطلبات" : filterType === "OFFER" ? "العروض" : "الاستفسارات والمكالمات"}
             </h1>
             {newCount > 0 && (
               <p className="text-sm text-muted-foreground">

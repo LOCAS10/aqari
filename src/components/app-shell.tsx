@@ -3,17 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
+  LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X, HandMetal, ArrowDownUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type TabId = "dashboard" | "properties" | "add-property" | "inquiries" | "agents" | "notifications";
+export type TabId = "dashboard" | "properties" | "add-property" | "inquiries" | "requests" | "offers" | "agents" | "notifications";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "dashboard", label: "لوحة التحكم", icon: LayoutDashboard },
   { id: "properties", label: "العقارات", icon: Building2 },
   { id: "inquiries", label: "الاستفسارات", icon: PhoneCall },
+  { id: "requests" as TabId, label: "الطلبات", icon: HandMetal },
+  { id: "offers" as TabId, label: "العروض", icon: ArrowDownUp },
   { id: "agents" as TabId, label: "الوكلاء", icon: Users },
   { id: "notifications" as TabId, label: "التنبيهات", icon: Bell },
 ];

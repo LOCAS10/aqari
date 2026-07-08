@@ -63,6 +63,8 @@ function AppContent() {
         />
       )}
       {tab === "inquiries" && <InquiriesView />}
+      {tab === "requests" && <InquiriesView filterType="REQUEST" />}
+      {tab === "offers" && <InquiriesView filterType="OFFER" />}
       {tab === "agents" && <AgentsView />}
       {tab === "notifications" && <NotificationsView />}
     </AppShell>
