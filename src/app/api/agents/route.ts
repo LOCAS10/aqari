@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: body.name.trim(),
         phone: body.phone?.trim() || null,
+        pin: body.pin?.trim() || null,
       },
     });
     return NextResponse.json({ agent: newAgent });

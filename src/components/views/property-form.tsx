@@ -35,6 +35,7 @@ import {
   Plus,
   Paperclip,
 } from "lucide-react";
+import { useAgentContext } from "@/contexts/agent-context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,7 +48,6 @@ interface PropertyFormProps {
 }
 
 interface PropertyPayload {
-  title: string;
   description: string;
   propertyType: string;
   transactionType: string;
@@ -204,7 +204,6 @@ export default function PropertyForm({
   const queryClient = useQueryClient();
 
   // -- form state -----------------------------------------------------------
-  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [transactionType, setTransactionType] = useState("");
@@ -219,17 +218,11 @@ export default function PropertyForm({
   const [features, setFeatures] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [agentId, setAgentId] = useState("");
 
   // -- media state ----------------------------------------------------------
   const [images, setImages] = useState<UploadedFile[]>([]);
   const [videos, setVideos] = useState<UploadedFile[]>([]);
   const [audios, setAudios] = useState<UploadedFile[]>([]);
-
-  // manual URL inputs
-  const [imageUrl, setImageUrl] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [audioUrl, setAudioUrl] = useState("");
 
   // -- audio recording ------------------------------------------------------
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -244,26 +237,8 @@ export default function PropertyForm({
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   // =========================================================================
-  // Fetch agents for dropdown
-  // Auto-assign current agent (يوسف)
-  const { data: agentsData } = useQuery({
-    queryKey: ["agents"],
-    queryFn: async () => {
-      const res = await fetch("/api/agents");
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.agents || [];
-    },
-  });
-  const agentsList = agentsData || [];
-
-  // Auto-assign "يوسف" as agent
-  useEffect(() => {
-    if (agentsList.length > 0 && !editId) {
-      const youssef = agentsList.find((a: any) => a.name === "يوسف");
-      if (youssef) setAgentId(youssef.id);
-    }
-  }, [agentsList, editId]);
+  // Auto-assign current agent from PIN login
+  const { agentId: currentAgentId } = useAgentContext();
 
   // Fetch property for editing
   // =========================================================================
@@ -279,7 +254,6 @@ export default function PropertyForm({
 
   useEffect(() => {
     if (editProperty) {
-      setTitle(editProperty.title ?? "");
       setDescription(editProperty.description ?? "");
       setPropertyType(editProperty.propertyType ?? "");
       setTransactionType(editProperty.transactionType ?? "");
@@ -296,7 +270,6 @@ export default function PropertyForm({
       setFeatures(editProperty.features ?? []);
       setStatus(editProperty.status ?? "");
       setContactPhone(editProperty.contactPhone ?? "");
-      setAgentId(editProperty.agentId ?? "");
       setImages(
         (editProperty.images ?? []).map((url: string, i: number) => ({
           url,
@@ -440,20 +413,6 @@ export default function PropertyForm({
     setter((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function addManualUrl(
-    url: string,
-    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>,
-    clearFn: () => void,
-    namePrefix: string
-  ) {
-    if (!url.trim()) return;
-    setter((prev) => [
-      ...prev,
-      { url: url.trim(), name: namePrefix, progress: 100, uploading: false },
-    ]);
-    clearFn();
-  }
-
   // -- drag & drop ----------------------------------------------------------
 
   function handleDragOver(e: React.DragEvent) {
@@ -576,8 +535,8 @@ export default function PropertyForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Auto-generate title if empty
-    const finalTitle = title.trim() || `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"} - ${address.trim() || "بدون عنوان"}`;
+    // Auto-generate title from type + address
+    const finalTitle = `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"}${address.trim() ? " - " + address.trim() : ""}`;
     if (!price.trim()) {
       toast.error("يرجى إدخال السعر");
       return;
@@ -609,7 +568,7 @@ export default function PropertyForm({
       features,
       status,
       contactPhone: contactPhone.trim(),
-      agentId: agentId || null,
+      agentId: editId ? (editProperty as any)?.agentId || null : currentAgentId || null,
       images: images.map((i) => i.url).filter(Boolean),
       videos: videos.map((v) => v.url).filter(Boolean),
       audios: audios.map((a) => a.url).filter(Boolean),
@@ -650,20 +609,6 @@ export default function PropertyForm({
             {/* ---------------------------------------------------------------- */}
             <div className="space-y-5">
               <h3 className="text-lg font-semibold border-b pb-2">المعلومات الأساسية</h3>
-
-              {/* Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">
-                  العنوان <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="أدخل عنوان العقار"
-                  required
-                />
-              </div>
 
               {/* Description */}
               <div className="space-y-2">

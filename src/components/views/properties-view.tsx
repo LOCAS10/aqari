@@ -154,14 +154,20 @@ function formatPrice(price: number) {
 }
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  APARTMENT: "شقة",
+  FURNISHED_APARTMENT: "شقة مفروشة",
+  APARTMENT: "شقة فارغة",
+  COMMERCIAL: "محل تجاري",
   VILLA: "فيلا",
+  FURNISHED_VILLA: "فيلا مفروشة",
+  WAREHOUSE: "هنكار",
   LAND: "أرض",
 };
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   SALE: "بيع",
   RENT: "كراء",
+  BUY: "شراء",
+  MORTGAGE: "رهن",
 };
 
 const STATUS_CONFIG: Record<
@@ -175,14 +181,20 @@ const STATUS_CONFIG: Record<
 };
 
 const PROPERTY_TYPE_COLORS: Record<string, string> = {
-  APARTMENT: "bg-blue-100 text-blue-700",
+  FURNISHED_APARTMENT: "bg-blue-100 text-blue-700",
+  APARTMENT: "bg-sky-100 text-sky-700",
+  COMMERCIAL: "bg-amber-100 text-amber-700",
   VILLA: "bg-emerald-100 text-emerald-700",
+  FURNISHED_VILLA: "bg-green-100 text-green-700",
+  WAREHOUSE: "bg-stone-100 text-stone-700",
   LAND: "bg-amber-100 text-amber-700",
 };
 
 const TRANSACTION_TYPE_COLORS: Record<string, string> = {
   SALE: "bg-slate-100 text-slate-700",
   RENT: "bg-cyan-100 text-cyan-700",
+  BUY: "bg-green-100 text-green-700",
+  MORTGAGE: "bg-purple-100 text-purple-700",
 };
 
 // ---------------------------------------------------------------------------
@@ -372,9 +384,13 @@ export function PropertiesView({ onSelectProperty, onEdit, onAddProperty }: Prop
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">الكل</SelectItem>
-                  <SelectItem value="APARTMENT">شقق</SelectItem>
-                  <SelectItem value="VILLA">فيلات</SelectItem>
-                  <SelectItem value="LAND">أراضي</SelectItem>
+                  <SelectItem value="FURNISHED_APARTMENT">شقة مفروشة</SelectItem>
+                  <SelectItem value="APARTMENT">شقة فارغة</SelectItem>
+                  <SelectItem value="COMMERCIAL">محل تجاري</SelectItem>
+                  <SelectItem value="VILLA">فيلا</SelectItem>
+                  <SelectItem value="FURNISHED_VILLA">فيلا مفروشة</SelectItem>
+                  <SelectItem value="WAREHOUSE">هنكار</SelectItem>
+                  <SelectItem value="LAND">أرض</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -393,6 +409,8 @@ export function PropertiesView({ onSelectProperty, onEdit, onAddProperty }: Prop
                   <SelectItem value="ALL">الكل</SelectItem>
                   <SelectItem value="SALE">بيع</SelectItem>
                   <SelectItem value="RENT">كراء</SelectItem>
+                  <SelectItem value="BUY">شراء</SelectItem>
+                  <SelectItem value="MORTGAGE">رهن</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -582,6 +600,12 @@ export function PropertiesView({ onSelectProperty, onEdit, onAddProperty }: Prop
                   {typeBadge(property.propertyType)}
                   {transactionBadge(property.transactionType)}
                 </div>
+                {property.agentId && agentsMap[property.agentId] && (
+                  <div className="flex items-center gap-1 text-xs text-primary font-medium pt-1">
+                    <Users className="size-3" />
+                    {agentsMap[property.agentId]}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

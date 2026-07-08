@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X, HandMetal, ArrowDownUp,
+  LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X, HandMetal, ArrowDownUp, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,9 +24,11 @@ interface AppShellProps {
   active: TabId;
   onChange: (tab: TabId) => void;
   children: React.ReactNode;
+  agentName?: string;
+  onLogout?: () => void;
 }
 
-export function AppShell({ active, onChange, children }: AppShellProps) {
+export function AppShell({ active, onChange, children, agentName, onLogout }: AppShellProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,6 +78,25 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
           <X className="w-5 h-5" />
         </Button>
       </div>
+
+      {/* Logged-in agent name */}
+      {agentName && (
+        <div className="px-4 py-3 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                {agentName.charAt(0)}
+              </div>
+              <span className="text-sm font-medium">{agentName}</span>
+            </div>
+            {onLogout && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLogout} title="تسجيل الخروج">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Nav Items */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

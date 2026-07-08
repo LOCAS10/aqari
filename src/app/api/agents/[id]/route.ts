@@ -9,6 +9,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const data: any = {};
     if (body.name !== undefined) data.name = body.name.trim();
     if (body.phone !== undefined) data.phone = body.phone?.trim() || null;
+    if (body.pin !== undefined) data.pin = body.pin?.trim() || null;
 
     const { agent: updatedAgent } = await agent.update({ where: { id }, data });
     if (!updatedAgent) return NextResponse.json({ error: 'غير موجود' }, { status: 404 });

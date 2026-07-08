@@ -44,6 +44,7 @@ export default function AgentsView() {
   const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null);
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
+  const [formPin, setFormPin] = useState("");
 
   // ---- Fetch agents ----
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
@@ -115,6 +116,7 @@ export default function AgentsView() {
     setEditTarget(null);
     setFormName("");
     setFormPhone("");
+    setFormPin("");
     setDialogOpen(true);
   }
 
@@ -122,6 +124,7 @@ export default function AgentsView() {
     setEditTarget(agent);
     setFormName(agent.name);
     setFormPhone(agent.phone || "");
+    setFormPin((agent as any).pin || "");
     setDialogOpen(true);
   }
 
@@ -130,6 +133,7 @@ export default function AgentsView() {
     setEditTarget(null);
     setFormName("");
     setFormPhone("");
+    setFormPin("");
   }
 
   function handleSave(e: React.FormEvent) {
@@ -138,7 +142,7 @@ export default function AgentsView() {
       toast.error("يرجى إدخال اسم الوكيل");
       return;
     }
-    saveMutation.mutate({ name: formName.trim(), phone: formPhone.trim() });
+    saveMutation.mutate({ name: formName.trim(), phone: formPhone.trim(), pin: formPin.trim() });
   }
 
   // ---- Render ----
@@ -252,6 +256,23 @@ export default function AgentsView() {
                 placeholder="أدخل رقم الهاتف"
                 dir="ltr"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agent-pin">
+                الرمز السري (PIN) <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="agent-pin"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={formPin}
+                onChange={(e) => setFormPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="أدخل رمز سري (أرقام فقط)"
+                dir="ltr"
+                required
+              />
+              <p className="text-xs text-muted-foreground">هذا الرمز سيستخدمه الوكيل لتسجيل الدخول</p>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
               <Button

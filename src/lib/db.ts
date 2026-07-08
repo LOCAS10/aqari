@@ -99,6 +99,7 @@ async function ensureTables() {
     "ALTER TABLE Inquiry ADD COLUMN inquirySubType TEXT DEFAULT NULL",
     "ALTER TABLE Inquiry ADD COLUMN propertyType TEXT DEFAULT NULL",
     "ALTER TABLE Inquiry ADD COLUMN agentId TEXT DEFAULT NULL",
+    "ALTER TABLE Agent ADD COLUMN pin TEXT",
   ];
   for (const sql of alterStatements) {
     try { await libsql.execute(sql); } catch (e: any) { /* column exists, ignore */ }
@@ -316,8 +317,8 @@ export const agent = {
     const d = opts.data;
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
     await query(
-      `INSERT INTO Agent (id, name, phone, createdAt) VALUES (?, ?, ?, datetime('now'))`,
-      [id, d.name, d.phone]
+      `INSERT INTO Agent (id, name, phone, pin, createdAt) VALUES (?, ?, ?, ?, datetime('now'))`,
+      [id, d.name, d.phone, d.pin || null]
     );
     const result = await query('SELECT * FROM Agent WHERE id = ?', [id]);
     return { agent: result.rows[0] };
@@ -329,6 +330,7 @@ export const agent = {
     const params: any[] = [];
     if (d.name !== undefined) { fields.push('name = ?'); params.push(d.name); }
     if (d.phone !== undefined) { fields.push('phone = ?'); params.push(d.phone); }
+    if (d.pin !== undefined) { fields.push('pin = ?'); params.push(d.pin || null); }
 
     if (!fields.length) return {};
     params.push(opts.where.id);

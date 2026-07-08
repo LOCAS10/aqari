@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAgentContext } from "@/contexts/agent-context";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ interface InquiriesViewProps {
 
 export default function InquiriesView({ filterType }: InquiriesViewProps) {
   const queryClient = useQueryClient();
+  const { agentId: currentAgentId } = useAgentContext();
 
   // ── Local state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -281,12 +283,10 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
       toast.error("يرجى اختيار النوع الفرعي");
       return;
     }
-    // Auto-find "يوسف" agent
-    const youssefAgent = agentsList.find((a) => a.name === "يوسف");
     addMutation.mutate({
       propertyId: addForm.propertyId,
       propertyType: addForm.propertyType,
-      agentId: youssefAgent?.id || null,
+      agentId: currentAgentId || null,
       callerName: addForm.callerName,
       callerPhone: addForm.callerPhone,
       message: addForm.message,
