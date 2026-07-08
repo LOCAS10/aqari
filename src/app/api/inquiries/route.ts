@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const { inquiry: createdInquiry } = await inquiry.create({
       data: {
         propertyId: body.propertyId || null,
+        propertyType: body.propertyType || null,
         callerName: body.callerName,
         callerPhone: body.callerPhone,
         message: body.message || null,

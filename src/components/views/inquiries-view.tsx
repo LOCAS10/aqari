@@ -67,9 +67,30 @@ interface Property {
   propertyType: string;
 }
 
+const PROPERTY_TYPE_OPTIONS = [
+  { value: "APARTMENT", label: "شقة" },
+  { value: "FURNISHED_APARTMENT", label: "شقة مفروشة" },
+  { value: "COMMERCIAL", label: "محل تجاري" },
+  { value: "VILLA", label: "فيلة" },
+  { value: "FURNISHED_VILLA", label: "فيلة مفروشة" },
+  { value: "WAREHOUSE", label: "هنكار" },
+  { value: "LAND", label: "أرض" },
+];
+
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  APARTMENT: "شقة",
+  FURNISHED_APARTMENT: "شقة مفروشة",
+  COMMERCIAL: "محل تجاري",
+  VILLA: "فيلة",
+  FURNISHED_VILLA: "فيلة مفروشة",
+  WAREHOUSE: "هنكار",
+  LAND: "أرض",
+};
+
 interface Inquiry {
   id: string;
   propertyId: string;
+  propertyType: string;
   callerName: string;
   callerPhone: string;
   message: string;
@@ -125,6 +146,7 @@ export default function InquiriesView() {
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     propertyId: "",
+    propertyType: "",
     callerName: "",
     callerPhone: "",
     message: "",
@@ -255,6 +277,7 @@ export default function InquiriesView() {
     }
     addMutation.mutate({
       propertyId: addForm.propertyId,
+      propertyType: addForm.propertyType,
       callerName: addForm.callerName,
       callerPhone: addForm.callerPhone,
       message: addForm.message,
@@ -416,19 +439,28 @@ export default function InquiriesView() {
                           </div>
                         </TableCell>
 
+                        {/* Property Type */}
+                        <TableCell>
+                          {inq.propertyType ? (
+                            <Badge variant="secondary" className="w-fit text-xs">
+                              <Building2 className="ml-1 h-3 w-3" />
+                              {PROPERTY_TYPE_LABELS[inq.propertyType] || inq.propertyType}
+                            </Badge>
+                          ) : inq.property?.propertyType ? (
+                            <Badge variant="secondary" className="w-fit text-xs">
+                              <Building2 className="ml-1 h-3 w-3" />
+                              {PROPERTY_TYPE_LABELS[inq.property?.propertyType] || inq.property.propertyType}
+                            </Badge>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+
                         {/* Property */}
                         <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium text-sm">
-                              {inq.property?.title ?? "—"}
-                            </span>
-                            {inq.property?.propertyType && (
-                              <Badge variant="secondary" className="w-fit text-xs">
-                                <Building2 className="ml-1 h-3 w-3" />
-                                {inq.property.propertyType}
-                              </Badge>
-                            )}
-                          </div>
+                          <span className="font-medium text-sm">
+                            {inq.property?.title ?? "—"}
+                          </span>
                         </TableCell>
 
                         {/* Caller */}
@@ -627,6 +659,28 @@ export default function InquiriesView() {
               </div>
             )}
 
+            {/* Property Type */}
+            <div className="space-y-2">
+              <Label>النوع <span className="text-destructive">*</span></Label>
+              <Select
+                value={addForm.propertyType}
+                onValueChange={(v) =>
+                  setAddForm((prev) => ({ ...prev, propertyType: v }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع العقار…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Property select (optional) */}
             <div className="space-y-2">
               <Label>العقار (اختياري)</Label>
@@ -764,6 +818,19 @@ export default function InquiriesView() {
                   </div>
                 </div>
 
+                {/* Property Type */}
+                {detailInquiry.propertyType && (
+                  <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      نوع العقار
+                    </div>
+                    <Badge variant="secondary">
+                      {PROPERTY_TYPE_LABELS[detailInquiry.propertyType] || detailInquiry.propertyType}
+                    </Badge>
+                  </div>
+                )}
+
                 {/* Property info */}
                 {detailInquiry.property && (
                   <div className="rounded-lg border p-4 space-y-2 bg-muted/30">
@@ -774,11 +841,6 @@ export default function InquiriesView() {
                     <p className="font-semibold">
                       {detailInquiry.property?.title ?? "—"}
                     </p>
-                    {detailInquiry.property?.propertyType && (
-                      <Badge variant="secondary" className="text-xs">
-                        {detailInquiry.property.propertyType}
-                      </Badge>
-                    )}
                   </div>
                 )}
 

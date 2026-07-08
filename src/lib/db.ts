@@ -97,6 +97,7 @@ async function ensureTables() {
     "ALTER TABLE Property ADD COLUMN agentId TEXT",
     "ALTER TABLE Inquiry ADD COLUMN inquiryType TEXT DEFAULT 'REQUEST'",
     "ALTER TABLE Inquiry ADD COLUMN inquirySubType TEXT DEFAULT NULL",
+    "ALTER TABLE Inquiry ADD COLUMN propertyType TEXT DEFAULT NULL",
   ];
   for (const sql of alterStatements) {
     try { await libsql.execute(sql); } catch (e: any) { /* column exists, ignore */ }
@@ -250,8 +251,8 @@ export const inquiry = {
     const d = opts.data;
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
     await query(
-      `INSERT INTO Inquiry (id, propertyId, callerName, callerPhone, message, status, inquiryType, inquirySubType) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, d.propertyId || null, d.callerName, d.callerPhone, d.message, d.status || 'NEW', d.inquiryType || 'REQUEST', d.inquirySubType || null]
+      `INSERT INTO Inquiry (id, propertyId, propertyType, callerName, callerPhone, message, status, inquiryType, inquirySubType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, d.propertyId || null, d.propertyType || null, d.callerName, d.callerPhone, d.message, d.status || 'NEW', d.inquiryType || 'REQUEST', d.inquirySubType || null]
     );
     const result = await query('SELECT * FROM Inquiry WHERE id = ?', [id]);
     return { inquiry: result.rows[0] };
