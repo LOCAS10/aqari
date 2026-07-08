@@ -58,7 +58,7 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
 
         {/* Navigation Tabs */}
         <nav className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none justify-end">
+          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none flex-row-reverse">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = active === tab.id;
