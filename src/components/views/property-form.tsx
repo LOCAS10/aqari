@@ -703,17 +703,6 @@ export default function PropertyForm({
                 </div>
               </div>
 
-              {/* Address */}
-              <div className="space-y-2">
-                <Label htmlFor="address">العنوان</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="أدخل العنوان"
-                />
-              </div>
-
               {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location">الموقع</Label>
