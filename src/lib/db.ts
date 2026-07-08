@@ -5,12 +5,19 @@ const globalForDb = globalThis as unknown as {
 };
 
 const url = process.env.DATABASE_URL || '';
-const authToken = process.env.DATABASE_AUTH_TOKEN || '';
+const authToken = process.env.DATABASE_AUTH_TOKEN || ''
+
+if (!url) {
+  console.error('[DB] WARNING: DATABASE_URL is not set');
+}
+if (url.startsWith('libsql://') && !authToken) {
+  console.error('[DB] WARNING: DATABASE_URL is Turso but DATABASE_AUTH_TOKEN is not set');
+}
 
 export const libsql = globalForDb.db ?? createClient(
   url.startsWith('libsql://')
     ? { url, authToken }
-    : { url: 'file:./db/dev.db' }
+    : { url: url || 'file:./db/dev.db' }
 );
 
 if (process.env.NODE_ENV !== 'production') globalForDb.db = libsql;

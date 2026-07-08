@@ -58,7 +58,10 @@ export default function AgentsView() {
     queryKey: ["agents"],
     queryFn: async () => {
       const res = await fetch("/api/agents");
-      if (!res.ok) throw new Error("فشل في تحميل الوكلاء");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `فشل في تحميل الوكلاء (${res.status})`);
+      }
       const json = await res.json();
       return json.agents || [];
     },
