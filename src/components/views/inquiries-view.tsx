@@ -25,14 +25,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -397,181 +389,105 @@ export default function InquiriesView() {
               <p className="text-sm">لا توجد استفسارات</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[130px]">النوع</TableHead>
-                    <TableHead className="min-w-[150px]">العقار</TableHead>
-                    <TableHead className="min-w-[120px]">المتصل</TableHead>
-                    <TableHead className="min-w-[130px]">الهاتف</TableHead>
-                    <TableHead className="min-w-[160px]">الرسالة</TableHead>
-                    <TableHead className="min-w-[110px]">الحالة</TableHead>
-                    <TableHead className="min-w-[110px]">التاريخ</TableHead>
-                    <TableHead className="min-w-[120px] text-center">
-                      إجراءات
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((inq) => {
-                    const sc = STATUS_CONFIG[inq.status];
-                    return (
-                      <TableRow key={inq.id}>
-                        {/* Type & SubType */}
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge
-                              variant="outline"
-                              className={`w-fit text-xs font-medium ${getTypeClass(inq.inquiryType)}`}
-                            >
-                              {getTypeLabel(inq.inquiryType)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((inq) => {
+                const sc = STATUS_CONFIG[inq.status];
+                return (
+                  <Card key={inq.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 space-y-3">
+                      {/* Top: Type badges + status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline" className={`text-xs font-medium ${getTypeClass(inq.inquiryType)}`}>
+                            {getTypeLabel(inq.inquiryType)}
+                          </Badge>
+                          {inq.inquirySubType && (
+                            <Badge variant="outline" className={`text-xs ${getSubTypeClass(inq.inquirySubType)}`}>
+                              {inq.inquiryType === "REQUEST" ? `طلب ${getSubTypeLabel(inq.inquirySubType)}` : `عرض ${getSubTypeLabel(inq.inquirySubType)}`}
                             </Badge>
-                            {inq.inquirySubType && (
-                              <Badge
-                                variant="outline"
-                                className={`w-fit text-xs ${getSubTypeClass(inq.inquirySubType)}`}
-                              >
-                                {inq.inquiryType === "REQUEST"
-                                  ? `طلب ${getSubTypeLabel(inq.inquirySubType)}`
-                                  : `عرض ${getSubTypeLabel(inq.inquirySubType)}`}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        {/* Property Type */}
-                        <TableCell>
-                          {inq.propertyType ? (
-                            <Badge variant="secondary" className="w-fit text-xs">
-                              <Building2 className="ml-1 h-3 w-3" />
+                          )}
+                          {inq.propertyType && (
+                            <Badge variant="secondary" className="text-xs">
                               {PROPERTY_TYPE_LABELS[inq.propertyType] || inq.propertyType}
                             </Badge>
-                          ) : inq.property?.propertyType ? (
-                            <Badge variant="secondary" className="w-fit text-xs">
-                              <Building2 className="ml-1 h-3 w-3" />
-                              {PROPERTY_TYPE_LABELS[inq.property?.propertyType] || inq.property.propertyType}
-                            </Badge>
-                          ) : (
-                            "—"
                           )}
-                        </TableCell>
-
-                        {/* Property */}
-                        <TableCell>
-                          <span className="font-medium text-sm">
-                            {inq.property?.title ?? "—"}
-                          </span>
-                        </TableCell>
-
-                        {/* Caller */}
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{inq.callerName}</span>
-                          </div>
-                        </TableCell>
-
-                        {/* Phone */}
-                        <TableCell dir="ltr" className="text-right text-sm">
-                          {inq.callerPhone}
-                        </TableCell>
-
-                        {/* Message */}
-                        <TableCell>
-                          <p className="line-clamp-2 text-sm text-muted-foreground max-w-[200px]">
-                            {inq.message || "—"}
-                          </p>
-                        </TableCell>
-
-                        {/* Status */}
-                        <TableCell>
-                          <Popover
-                            open={statusPopoverId === inq.id}
-                            onOpenChange={(open) =>
-                              setStatusPopoverId(open ? inq.id : null)
-                            }
-                          >
-                            <PopoverTrigger asChild>
+                        </div>
+                        <Popover
+                          open={statusPopoverId === inq.id}
+                          onOpenChange={(open) => setStatusPopoverId(open ? inq.id : null)}
+                        >
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 shrink-0 ${sc.className}`}
+                            >
+                              {sc.label}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="center" className="w-40 p-1">
+                            {STATUS_LIST.map((s) => (
                               <button
+                                key={s}
                                 type="button"
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 ${sc.className}`}
+                                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent ${s === inq.status ? "font-bold" : ""}`}
+                                onClick={() => handleStatusChange(inq.id, s)}
                               >
-                                {sc.label}
+                                <span className={`inline-block h-2.5 w-2.5 rounded-full ${s === "NEW" ? "bg-blue-500" : s === "CONTACTED" ? "bg-green-500" : s === "FOLLOW_UP" ? "bg-amber-500" : "bg-gray-400"}`} />
+                                {STATUS_CONFIG[s].label}
                               </button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              align="center"
-                              className="w-40 p-1"
-                            >
-                              {STATUS_LIST.map((s) => (
-                                <button
-                                  key={s}
-                                  type="button"
-                                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent ${
-                                    s === inq.status
-                                      ? "font-bold"
-                                      : ""
-                                  }`}
-                                  onClick={() =>
-                                    handleStatusChange(inq.id, s)
-                                  }
-                                >
-                                  <span
-                                    className={`inline-block h-2.5 w-2.5 rounded-full ${
-                                      s === "NEW"
-                                        ? "bg-blue-500"
-                                        : s === "CONTACTED"
-                                        ? "bg-green-500"
-                                        : s === "FOLLOW_UP"
-                                        ? "bg-amber-500"
-                                        : "bg-gray-400"
-                                    }`}
-                                  />
-                                  {STATUS_CONFIG[s].label}
-                                </button>
-                              ))}
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-                        {/* Date */}
-                        <TableCell className="text-sm text-muted-foreground">
+                      {/* Caller info */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="font-medium text-sm">{inq.callerName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span dir="ltr">{inq.callerPhone}</span>
+                        </div>
+                      </div>
+
+                      {/* Message */}
+                      {inq.message && (
+                        <p className="line-clamp-2 text-sm text-muted-foreground">{inq.message}</p>
+                      )}
+
+                      {/* Property */}
+                      {inq.property?.title && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1">
+                          <Building2 className="h-3 w-3 shrink-0" />
+                          {inq.property.title}
+                        </div>
+                      )}
+
+                      {/* Bottom: date + actions */}
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
                           {formatDate(inq.createdAt)}
-                        </TableCell>
-
-                        {/* Actions */}
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="عرض التفاصيل"
-                              onClick={() => setDetailInquiry(inq)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              title="حذف"
-                              onClick={() => handleDelete(inq.id)}
-                            >
-                              {deleteMutation.isPending &&
-                              deleteMutation.variables === inq.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" className="size-7" title="عرض التفاصيل" onClick={() => setDetailInquiry(inq)}>
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" title="حذف" onClick={() => handleDelete(inq.id)}>
+                            {deleteMutation.isPending && deleteMutation.variables === inq.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

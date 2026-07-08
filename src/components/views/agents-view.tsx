@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Phone, Building2, Bell } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,14 +17,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -166,76 +158,69 @@ export default function AgentsView() {
         </CardHeader>
       </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : agents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-              <Users className="size-12" />
-              <p className="text-lg font-medium">لا يوجد وكلاء</p>
-              <p className="text-sm">يمكنك إضافة وكلاء جدد</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">الاسم</TableHead>
-                  <TableHead className="text-right">الهاتف</TableHead>
-                  <TableHead className="text-right">العقارات</TableHead>
-                  <TableHead className="text-right">التنبيهات غير المقروءة</TableHead>
-                  <TableHead className="text-right">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {agents.map((agent) => (
-                  <TableRow key={agent.id}>
-                    <TableCell className="font-medium">{agent.name}</TableCell>
-                    <TableCell dir="ltr" className="text-left">
-                      {agent.phone || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{agent.propertyCount}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {agent.unreadCount > 0 ? (
-                        <Badge variant="destructive">{agent.unreadCount}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8"
-                          onClick={() => openEdit(agent)}
-                          title="تعديل"
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(agent)}
-                          title="حذف"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : agents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+          <Users className="size-12" />
+          <p className="text-lg font-medium">لا يوجد وكلاء</p>
+          <p className="text-sm">يمكنك إضافة وكلاء جدد</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {agents.map((agent) => (
+            <Card key={agent.id} className="relative group hover:shadow-md transition-shadow">
+              <CardContent className="p-5 space-y-4">
+                {/* Name */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                      {agent.name.charAt(0)}
+                    </div>
+                    <h3 className="font-semibold text-base">{agent.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="size-8" onClick={() => openEdit(agent)} title="تعديل">
+                      <Pencil className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(agent)} title="حذف">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Phone */}
+                {agent.phone && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="size-4 shrink-0" />
+                    <span dir="ltr">{agent.phone}</span>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="flex items-center gap-4 pt-2 border-t">
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <Building2 className="size-4 text-muted-foreground" />
+                    <span className="font-medium">{agent.propertyCount}</span>
+                    <span className="text-muted-foreground">عقار</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <Bell className="size-4 text-muted-foreground" />
+                    {agent.unreadCount > 0 ? (
+                      <Badge variant="destructive" className="text-xs">{agent.unreadCount}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">0 تنبيه</span>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
