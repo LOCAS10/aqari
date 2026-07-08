@@ -59,7 +59,7 @@ import { toast } from "sonner";
 
 type InquiryStatus = "NEW" | "CONTACTED" | "FOLLOW_UP" | "CLOSED";
 type InquiryType = "REQUEST" | "OFFER";
-type InquirySubType = "SALE" | "RENT";
+type InquirySubType = "SALE" | "RENT" | "MORTGAGE";
 
 interface Property {
   id: string;
@@ -128,6 +128,7 @@ const INQUIRY_TYPE_CONFIG: Record<InquiryType, { label: string; className: strin
 const INQUIRY_SUBTYPE_CONFIG: Record<InquirySubType, { label: string; className: string }> = {
   SALE: { label: "بيع", className: "bg-red-50 text-red-700 border-red-200" },
   RENT: { label: "كراء", className: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+  MORTGAGE: { label: "رهن", className: "bg-purple-50 text-purple-700 border-purple-200" },
 };
 
 const formatDate = (d: string) =>
@@ -647,11 +648,13 @@ export default function InquiriesView() {
                       <>
                         <SelectItem value="SALE">طلب شراء</SelectItem>
                         <SelectItem value="RENT">طلب كراء</SelectItem>
+                        <SelectItem value="MORTGAGE">طلب رهن</SelectItem>
                       </>
                     ) : (
                       <>
                         <SelectItem value="RENT">عرض كراء</SelectItem>
                         <SelectItem value="SALE">عرض بيع</SelectItem>
+                        <SelectItem value="MORTGAGE">عرض رهن</SelectItem>
                       </>
                     )}
                   </SelectContent>
