@@ -68,21 +68,21 @@ interface Property {
 }
 
 const PROPERTY_TYPE_OPTIONS = [
-  { value: "APARTMENT", label: "شقة" },
   { value: "FURNISHED_APARTMENT", label: "شقة مفروشة" },
+  { value: "APARTMENT", label: "شقة فارغة" },
   { value: "COMMERCIAL", label: "محل تجاري" },
-  { value: "VILLA", label: "فيلة" },
-  { value: "FURNISHED_VILLA", label: "فيلة مفروشة" },
+  { value: "VILLA", label: "فيلا" },
+  { value: "FURNISHED_VILLA", label: "فيلا مفروشة" },
   { value: "WAREHOUSE", label: "هنكار" },
   { value: "LAND", label: "أرض" },
 ];
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  APARTMENT: "شقة",
   FURNISHED_APARTMENT: "شقة مفروشة",
+  APARTMENT: "شقة فارغة",
   COMMERCIAL: "محل تجاري",
-  VILLA: "فيلة",
-  FURNISHED_VILLA: "فيلة مفروشة",
+  VILLA: "فيلا",
+  FURNISHED_VILLA: "فيلا مفروشة",
   WAREHOUSE: "هنكار",
   LAND: "أرض",
 };

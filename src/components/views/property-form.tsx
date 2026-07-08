@@ -86,14 +86,20 @@ interface FeatureOption {
 // ---------------------------------------------------------------------------
 
 const PROPERTY_TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: "APARTMENT", label: "شقة" },
+  { value: "FURNISHED_APARTMENT", label: "شقة مفروشة" },
+  { value: "APARTMENT", label: "شقة فارغة" },
+  { value: "COMMERCIAL", label: "محل تجاري" },
   { value: "VILLA", label: "فيلا" },
+  { value: "FURNISHED_VILLA", label: "فيلا مفروشة" },
+  { value: "WAREHOUSE", label: "هنكار" },
   { value: "LAND", label: "أرض" },
 ];
 
 const TRANSACTION_TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: "SALE", label: "بيع" },
   { value: "RENT", label: "كراء" },
+  { value: "SALE", label: "بيع" },
+  { value: "BUY", label: "شراء" },
+  { value: "MORTGAGE", label: "رهن" },
 ];
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -356,8 +362,8 @@ export default function PropertyForm({
   // Handlers
   // =========================================================================
   const isApartmentOrVilla =
-    propertyType === "APARTMENT" || propertyType === "VILLA";
-  const isApartment = propertyType === "APARTMENT";
+    propertyType === "APARTMENT" || propertyType === "VILLA" || propertyType === "FURNISHED_APARTMENT" || propertyType === "FURNISHED_VILLA";
+  const isApartment = propertyType === "APARTMENT" || propertyType === "FURNISHED_APARTMENT";
 
   const toggleFeature = useCallback((value: string) => {
     setFeatures((prev) =>
@@ -674,11 +680,11 @@ export default function PropertyForm({
                     onValueChange={(val) => {
                       setPropertyType(val);
                       // Reset conditional fields when type changes
-                      if (val !== "APARTMENT" && val !== "VILLA") {
+                      if (val !== "APARTMENT" && val !== "VILLA" && val !== "FURNISHED_APARTMENT" && val !== "FURNISHED_VILLA") {
                         setRooms("");
                         setBathrooms("");
                       }
-                      if (val !== "APARTMENT") {
+                      if (val !== "APARTMENT" && val !== "FURNISHED_APARTMENT") {
                         setFloor("");
                       }
                     }}
