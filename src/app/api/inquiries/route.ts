@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     await dbReady;
     const body = await req.json();
-    const { inquiry } = await inquiry.create({
+    const { inquiry: createdInquiry } = await inquiry.create({
       data: {
         propertyId: body.propertyId || null,
         callerName: body.callerName,
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         inquirySubType: body.inquirySubType || null,
       },
     });
-    return NextResponse.json({ inquiry });
+    return NextResponse.json({ inquiry: createdInquiry });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
