@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
-  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun, Users, Bell,
+  LayoutDashboard, Building2, Plus, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export type TabId = "dashboard" | "properties" | "add-property" | "inquiries" | "agents" | "notifications";
 
@@ -27,75 +28,124 @@ interface AppShellProps {
 export function AppShell({ active, onChange, children }: AppShellProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useState(() => {
     setMounted(true);
   });
 
+  function handleTabClick(tab: TabId) {
+    onChange(tab);
+    setMobileMenuOpen(false);
+  }
+
+  const sidebarContent = (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold">عقاري</h1>
+            <p className="text-[10px] text-muted-foreground">إدارة العقارات</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav Items */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = active === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Theme Toggle */}
+      <div className="p-3 border-t">
+        {mounted && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            <span className="text-sm">{theme === "dark" ? "وضع نهاري" : "وضع ليلي"}</span>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold">عقاري</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:block ml-2">نظام إدارة العقارات</span>
-            {mounted && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="rounded-full"
-              >
-                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-            )}
-          </div>
-        </div>
+    <div className="min-h-screen flex bg-background text-foreground">
+      {/* Desktop Sidebar - Right Side */}
+      <aside className="hidden md:flex w-56 border-l bg-card flex-col shrink-0 sticky top-0 h-screen">
+        {sidebarContent}
+      </aside>
 
-        {/* Navigation Tabs */}
-        <nav className="max-w-7xl mx-auto px-4" dir="rtl">
-          <div className="flex gap-1 overflow-x-auto pb-0 -mb-px scrollbar-none">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = active === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onChange(tab.id)}
-                  className={`
-                    flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors
-                    ${isActive
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
-                    }
-                  `}
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={cn(
+          "fixed top-0 right-0 z-50 h-full w-56 bg-card border-l shadow-xl transition-transform duration-200 md:hidden",
+          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile Header */}
+        <header className="md:hidden sticky top-0 z-30 bg-background border-b px-4 h-14 flex items-center justify-between">
+          <h1 className="text-lg font-bold">عقاري</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+          <div className="max-w-6xl mx-auto">
+            {children}
           </div>
-        </nav>
-      </header>
+        </main>
 
-      {/* Main Content */}
-      <main className="flex-1 py-6">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t bg-background py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center text-xs text-muted-foreground">
-          نظام عقاري &copy; {new Date().getFullYear()} — إدارة كراء وبيع العقارات
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="border-t bg-background py-3">
+          <div className="text-center text-xs text-muted-foreground">
+            نظام عقاري &copy; {new Date().getFullYear()}
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
