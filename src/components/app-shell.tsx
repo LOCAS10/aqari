@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard, Building2, PhoneCall, Moon, Sun, Users, Bell, Menu, X,
@@ -34,19 +34,32 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
     setMobileMenuOpen(false);
   }, [active]);
 
-  useState(() => {
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     setMounted(true);
-  });
+  }, []);
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+  }, []);
 
   function handleTabClick(tab: TabId) {
     onChange(tab);
-    setMobileMenuOpen(false);
   }
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
             <Building2 className="w-5 h-5 text-primary-foreground" />
@@ -56,6 +69,10 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
             <p className="text-[10px] text-muted-foreground">إدارة العقارات</p>
           </div>
         </div>
+        {/* Close button inside sidebar */}
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={closeMobileMenu}>
+          <X className="w-5 h-5" />
+        </Button>
       </div>
 
       {/* Nav Items */}
@@ -104,35 +121,32 @@ export function AppShell({ active, onChange, children }: AppShellProps) {
         {sidebarContent}
       </aside>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Menu: overlay + sidebar rendered together or not at all */}
       {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
+        <div className="md:hidden">
+          {/* Overlay - full screen behind sidebar */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50"
+            onClick={closeMobileMenu}
+          />
+          {/* Sidebar */}
+          <aside className="fixed top-0 right-0 z-50 h-full w-64 bg-card border-l shadow-2xl overflow-y-auto">
+            {sidebarContent}
+          </aside>
+        </div>
       )}
-
-      {/* Mobile Sidebar */}
-      <aside
-        className={cn(
-          "fixed top-0 right-0 z-[60] h-full w-56 bg-card border-l shadow-xl md:hidden",
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
-        )}
-      >
-        {sidebarContent}
-      </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-40 bg-background border-b px-4 h-14 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-30 bg-background border-b px-4 h-14 flex items-center justify-between">
           <h1 className="text-lg font-bold">عقاري</h1>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            onClick={() => setMobileMenuOpen(true)}
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <Menu className="w-5 h-5" />
           </Button>
         </header>
 
