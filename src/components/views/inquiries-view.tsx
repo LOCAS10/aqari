@@ -142,6 +142,7 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
   // ── Local state ──────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [subTypeFilter, setSubTypeFilter] = useState<string>("ALL");
 
   // Add dialog
   const [addOpen, setAddOpen] = useState(false);
@@ -189,6 +190,8 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
 
   const filtered = inquiries.filter((inq) => {
     const matchesType = !filterType || inq.inquiryType === filterType;
+    const matchesSubType =
+      subTypeFilter === "ALL" || inq.inquirySubType === subTypeFilter;
     const matchesStatus =
       statusFilter === "ALL" || inq.status === statusFilter;
 
@@ -200,7 +203,7 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
       (inq.message ?? "").toLowerCase().includes(term) ||
       inq.property?.title.toLowerCase().includes(term);
 
-    return matchesType && matchesStatus && matchesSearch;
+    return matchesType && matchesSubType && matchesStatus && matchesSearch;
   });
 
   // ── Mutations ────────────────────────────────────────────────────────────
@@ -370,21 +373,31 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
             <div className="w-full sm:w-48 space-y-2">
               <Label className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
-                الحالة
+                {filterType ? "النوع" : "الحالة"}
               </Label>
               <Select
-                value={statusFilter}
-                onValueChange={setStatusFilter}
+                value={filterType ? subTypeFilter : statusFilter}
+                onValueChange={filterType ? setSubTypeFilter : setStatusFilter}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="الكل" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">الكل</SelectItem>
-                  <SelectItem value="NEW">جديد</SelectItem>
-                  <SelectItem value="CONTACTED">تم التواصل</SelectItem>
-                  <SelectItem value="FOLLOW_UP">متابعة</SelectItem>
-                  <SelectItem value="CLOSED">مغلق</SelectItem>
+                  {filterType ? (
+                    <>
+                      <SelectItem value="SALE">بيع</SelectItem>
+                      <SelectItem value="RENT">كراء</SelectItem>
+                      <SelectItem value="MORTGAGE">رهن</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="NEW">جديد</SelectItem>
+                      <SelectItem value="CONTACTED">تم التواصل</SelectItem>
+                      <SelectItem value="FOLLOW_UP">متابعة</SelectItem>
+                      <SelectItem value="CLOSED">مغلق</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
