@@ -6,7 +6,7 @@ export async function GET() {
     await dbReady;
     const { inquiries } = await inquiry.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { property: true },
+      include: { property: true, agent: true },
     });
     return NextResponse.json({ inquiries });
   } catch (e: any) {
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       data: {
         propertyId: body.propertyId || null,
         propertyType: body.propertyType || null,
+        agentId: body.agentId || null,
         callerName: body.callerName,
         callerPhone: body.callerPhone,
         message: body.message || null,

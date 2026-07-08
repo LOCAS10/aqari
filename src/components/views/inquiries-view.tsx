@@ -83,6 +83,7 @@ interface Inquiry {
   id: string;
   propertyId: string;
   propertyType: string;
+  agentId: string;
   callerName: string;
   callerPhone: string;
   message: string;
@@ -91,6 +92,7 @@ interface Inquiry {
   inquirySubType: string;
   createdAt: string;
   property: Property;
+  agent: { id: string; name: string };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -171,8 +173,14 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
     queryFn: () => fetch("/api/properties").then((r) => r.json()),
   });
 
+  const { data: agentsData } = useQuery<{ agents: { id: string; name: string }[] }>({
+    queryKey: ["agents"],
+    queryFn: () => fetch("/api/agents").then((r) => r.json()),
+  });
+
   const inquiries = inquiriesData?.inquiries ?? [];
   const properties = propertiesData?.properties ?? [];
+  const agentsList = agentsData?.agents ?? [];
 
   // ── Derived data ─────────────────────────────────────────────────────────
   const newCount = inquiries.filter((i) => i.status === "NEW").length;
@@ -273,9 +281,12 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
       toast.error("يرجى اختيار النوع الفرعي");
       return;
     }
+    // Auto-find "يوسف" agent
+    const youssefAgent = agentsList.find((a) => a.name === "يوسف");
     addMutation.mutate({
       propertyId: addForm.propertyId,
       propertyType: addForm.propertyType,
+      agentId: youssefAgent?.id || null,
       callerName: addForm.callerName,
       callerPhone: addForm.callerPhone,
       message: addForm.message,
@@ -470,12 +481,19 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
                         </div>
                       )}
 
-                      {/* Bottom: date + actions */}
+                      {/* Bottom: date + agent + actions */}
                       <div className="flex items-center justify-between pt-2 border-t">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(inq.createdAt)}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(inq.createdAt)}
+                          </span>
+                          {inq.agent?.name && (
+                            <span className="text-xs text-primary font-medium">
+                              {inq.agent.name}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1">
                           <Button variant="ghost" size="icon" className="size-7" title="عرض التفاصيل" onClick={() => setDetailInquiry(inq)}>
                             <Eye className="h-3.5 w-3.5" />

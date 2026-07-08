@@ -53,7 +53,6 @@ interface PropertyPayload {
   transactionType: string;
   price: number | null;
   area: number | null;
-  city: string;
   address: string;
   location: string;
   rooms: number | null;
@@ -117,7 +116,7 @@ const FEATURE_OPTIONS: FeatureOption[] = [
   { value: "security", label: "حارس أمن" },
   { value: "ac", label: "تكييف" },
   { value: "furnished_kitchen", label: "مطبخ مؤثث" },
-  { value: "washing_machine", label: "غسالة" },
+  { value: "near_transport", label: "قريبة من المواصلات" },
   { value: "balcony", label: "بالكونة" },
   { value: "sea_view", label: "إطلالة بحرية" },
   { value: "near_mosque", label: "قريب من المسجد" },
@@ -211,7 +210,7 @@ export default function PropertyForm({
   const [transactionType, setTransactionType] = useState("");
   const [price, setPrice] = useState("");
   const [area, setArea] = useState("");
-  const [city, setCity] = useState("");
+  // city removed
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [rooms, setRooms] = useState("");
@@ -246,6 +245,7 @@ export default function PropertyForm({
 
   // =========================================================================
   // Fetch agents for dropdown
+  // Auto-assign current agent (يوسف)
   const { data: agentsData } = useQuery({
     queryKey: ["agents"],
     queryFn: async () => {
@@ -256,6 +256,14 @@ export default function PropertyForm({
     },
   });
   const agentsList = agentsData || [];
+
+  // Auto-assign "يوسف" as agent
+  useEffect(() => {
+    if (agentsList.length > 0 && !editId) {
+      const youssef = agentsList.find((a: any) => a.name === "يوسف");
+      if (youssef) setAgentId(youssef.id);
+    }
+  }, [agentsList, editId]);
 
   // Fetch property for editing
   // =========================================================================
@@ -277,7 +285,7 @@ export default function PropertyForm({
       setTransactionType(editProperty.transactionType ?? "");
       setPrice(editProperty.price != null ? String(editProperty.price) : "");
       setArea(editProperty.area != null ? String(editProperty.area) : "");
-      setCity(editProperty.city ?? "");
+      // city removed
       setAddress(editProperty.address ?? "");
       setLocation(editProperty.location ?? "");
       setRooms(editProperty.rooms != null ? String(editProperty.rooms) : "");
@@ -568,10 +576,8 @@ export default function PropertyForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim()) {
-      toast.error("يرجى إدخال عنوان العقار");
-      return;
-    }
+    // Auto-generate title if empty
+    const finalTitle = title.trim() || `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"} - ${address.trim() || "بدون عنوان"}`;
     if (!price.trim()) {
       toast.error("يرجى إدخال السعر");
       return;
@@ -588,13 +594,13 @@ export default function PropertyForm({
     }
 
     const payload: PropertyPayload = {
-      title: title.trim(),
+      title: finalTitle,
       description: description.trim(),
       propertyType,
       transactionType,
       price: price ? Number(price) : null,
       area: area ? Number(area) : null,
-      city: city.trim(),
+      city: "",
       address: address.trim(),
       location: location.trim(),
       rooms: rooms ? Number(rooms) : null,
@@ -726,7 +732,7 @@ export default function PropertyForm({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">
-                    السعر <span className="text-destructive">*</span>
+                    السعر (درهم مغربي) <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="price"
@@ -752,27 +758,15 @@ export default function PropertyForm({
                 </div>
               </div>
 
-              {/* City & Address */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">المدينة</Label>
-                  <Input
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="أدخل المدينة"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">العنوان</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="أدخل العنوان"
-                  />
-                </div>
+              {/* Address */}
+              <div className="space-y-2">
+                <Label htmlFor="address">العنوان</Label>
+                <Input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="أدخل العنوان"
+                />
               </div>
 
               {/* Location */}
@@ -960,28 +954,7 @@ export default function PropertyForm({
                 </div>
               )}
 
-              {/* Manual URL input */}
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="أدخل رابط صورة يدوياً"
-                  dir="ltr"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    addManualUrl(imageUrl, setImages, () => setImageUrl(""), "صورة من رابط")
-                  }
-                  disabled={!imageUrl.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+
             </div>
 
             {/* ---------------------------------------------------------------- */}
@@ -1056,28 +1029,7 @@ export default function PropertyForm({
                 </div>
               )}
 
-              {/* Manual URL input */}
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="أدخل رابط فيديو يدوياً"
-                  dir="ltr"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    addManualUrl(videoUrl, setVideos, () => setVideoUrl(""), "فيديو من رابط")
-                  }
-                  disabled={!videoUrl.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+
             </div>
 
             {/* ---------------------------------------------------------------- */}
@@ -1182,49 +1134,10 @@ export default function PropertyForm({
                 </div>
               )}
 
-              {/* Manual URL input */}
-              <div className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input
-                  value={audioUrl}
-                  onChange={(e) => setAudioUrl(e.target.value)}
-                  placeholder="أدخل رابط تسجيل صوتي يدوياً"
-                  dir="ltr"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() =>
-                    addManualUrl(audioUrl, setAudios, () => setAudioUrl(""), "تسجيل من رابط")
-                  }
-                  disabled={!audioUrl.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+
             </div>
 
-            {/* ---------------------------------------------------------------- */}
-            {/* Agent Selection                                                   */}
-            {/* ---------------------------------------------------------------- */}
-            <div className="space-y-2">
-              <Label>الوكيل</Label>
-              <Select value={agentId || "NONE"} onValueChange={(v) => setAgentId(v === "NONE" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الوكيل (اختياري)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">بدون وكيل</SelectItem>
-                  {agentsList.map((a: any) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Agent auto-assigned */}
 
             {/* ---------------------------------------------------------------- */}
             {/* Submit Actions                                                   */}
