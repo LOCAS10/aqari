@@ -319,7 +319,7 @@ export default function PropertyForm({
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || "فشل في تحديث العقار");
+          throw new Error(err.error || err.message || "فشل في تحديث العقار");
         }
         return res.json();
       } else {
@@ -330,7 +330,7 @@ export default function PropertyForm({
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || "فشل في إضافة العقار");
+          throw new Error(err.error || err.message || "فشل في إضافة العقار");
         }
         return res.json();
       }
