@@ -137,60 +137,23 @@ async function uploadFile(
   resourceType: string,
   onProgress?: (percent: number) => void
 ): Promise<{ url: string } | null> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("resourceType", resourceType);
-
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/upload");
-
-    xhr.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable && onProgress) {
-        const percent = Math.round((event.loaded / event.total) * 100);
-        onProgress(percent);
-      }
+  try {
+    // Convert file to base64 locally (no server upload needed)
+    if (onProgress) onProgress(50);
+    
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
 
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const data = JSON.parse(xhr.responseText);
-          if (data?.url) {
-            resolve({ url: data.url });
-          } else {
-            toast.error("لم يتم العثور على رابط في استجابة الرفع");
-            resolve(null);
-          }
-        } catch {
-          toast.error("فشل في تحليل استجابة الرفع");
-          resolve(null);
-        }
-      } else {
-        try {
-          const err = JSON.parse(xhr.responseText);
-          if (
-            err?.error?.includes("Cloudinary") ||
-            err?.message?.includes("Cloudinary")
-          ) {
-            toast.error("خدمة التخزين السحابي غير مضبوطة. يرجى إدخال الرابط يدوياً.");
-          } else {
-            toast.error(err?.message || `فشل في رفع الملف (${xhr.status})`);
-          }
-        } catch {
-          toast.error(`فشل في رفع الملف (${xhr.status})`);
-        }
-        resolve(null);
-      }
-    });
-
-    xhr.addEventListener("error", () => {
-      toast.error("خطأ في الشبكة أثناء رفع الملف");
-      resolve(null);
-    });
-
-    xhr.send(formData);
-  });
+    if (onProgress) onProgress(100);
+    return { url: dataUrl };
+  } catch {
+    toast.error("فشل في قراءة الملف");
+    return null;
+  }
 }
 
 // ---------------------------------------------------------------------------
