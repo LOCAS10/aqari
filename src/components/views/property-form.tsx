@@ -268,33 +268,41 @@ export default function PropertyForm({
         editProperty.bathrooms != null ? String(editProperty.bathrooms) : ""
       );
       setFloor(editProperty.floor != null ? String(editProperty.floor) : "");
-      setFeatures(editProperty.features ?? []);
+      try {
+        const parsed = typeof editProperty.features === 'string' ? JSON.parse(editProperty.features) : (editProperty.features ?? []);
+        setFeatures(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setFeatures([]);
+      }
       setStatus(editProperty.status ?? "");
       setContactPhone(editProperty.contactPhone ?? "");
-      setImages(
-        (editProperty.images ?? []).map((url: string, i: number) => ({
+      try {
+        const parsedImages = typeof editProperty.images === 'string' ? JSON.parse(editProperty.images) : (editProperty.images ?? []);
+        setImages((Array.isArray(parsedImages) ? parsedImages : []).map((url: string, i: number) => ({
           url,
           name: `صورة ${i + 1}`,
           progress: 100,
           uploading: false,
-        }))
-      );
-      setVideos(
-        (editProperty.videos ?? []).map((url: string, i: number) => ({
+        })));
+      } catch { setImages([]); }
+      try {
+        const parsedVideos = typeof editProperty.videos === 'string' ? JSON.parse(editProperty.videos) : (editProperty.videos ?? []);
+        setVideos((Array.isArray(parsedVideos) ? parsedVideos : []).map((url: string, i: number) => ({
           url,
           name: `فيديو ${i + 1}`,
           progress: 100,
           uploading: false,
-        }))
-      );
-      setAudios(
-        (editProperty.audios ?? []).map((url: string, i: number) => ({
+        })));
+      } catch { setVideos([]); }
+      try {
+        const parsedAudios = typeof editProperty.audios === 'string' ? JSON.parse(editProperty.audios) : (editProperty.audios ?? []);
+        setAudios((Array.isArray(parsedAudios) ? parsedAudios : []).map((url: string, i: number) => ({
           url,
           name: `تسجيل ${i + 1}`,
           progress: 100,
           uploading: false,
-        }))
-      );
+        })));
+      } catch { setAudios([]); }
     }
   }, [editProperty]);
 
@@ -536,12 +544,22 @@ export default function PropertyForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Auto-generate title from type + address
-    const finalTitle = `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"}${address.trim() ? " - " + address.trim() : ""}`;
+    // Validate required fields
+    if (!propertyType) {
+      toast.error("يرجى اختيار نوع العقار");
+      return;
+    }
+    if (!transactionType) {
+      toast.error("يرجى اختيار نوع العملية");
+      return;
+    }
     if (!price.trim()) {
       toast.error("يرجى إدخال السعر");
       return;
     }
+
+    // Auto-generate title from type + address
+    const finalTitle = `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"}${address.trim() ? " - " + address.trim() : ""}`;
 
     // Check if any media is still uploading
     const stillUploading =
@@ -704,15 +722,27 @@ export default function PropertyForm({
                 </div>
               </div>
 
-              {/* Location */}
-              <div className="space-y-2">
-                <Label htmlFor="location">الموقع</Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="أدخل الموقع أو رابط الخريطة"
-                />
+              {/* Location & Address */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="location">الموقع</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="أدخل الموقع أو رابط الخريطة"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">العنوان</Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="أدخل العنوان التفصيلي"
+                  />
+                </div>
               </div>
 
               {/* Conditional fields: Rooms, Bathrooms, Floor */}
