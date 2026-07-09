@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// Local upload directory
-const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads');
+const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 
-// Ensure upload directory exists
-async function ensureUploadDir() {
-  if (!existsSync(UPLOAD_DIR)) {
-    await mkdir(UPLOAD_DIR, { recursive: true });
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -21,26 +18,19 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'لا يوجد ملف' }, { status: 400 });
 
-    await ensureUploadDir();
+    const subfolder = resourceType === 'video' ? 'videos' : resourceType === 'audio' ? 'audios' : 'images';
+    const dirPath = path.join(UPLOAD_DIR, subfolder);
+    ensureDir(dirPath);
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const ext = file.name.split('.').pop() || 'bin';
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = path.join(dirPath, fileName);
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || (file.type === 'image/png' ? 'png' : file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/webp' ? 'webp' : 'bin');
-    const subfolder = resourceType === 'video' ? 'videos' : resourceType === 'audio' ? 'audios' : 'images';
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const relativePath = `${subfolder}/${uniqueName}`;
-    const fullPath = join(UPLOAD_DIR, subfolder);
+    fs.writeFileSync(filePath, buffer);
 
-    if (!existsSync(fullPath)) {
-      await mkdir(fullPath, { recursive: true });
-    }
-
-    await writeFile(join(fullPath, uniqueName), buffer);
-
-    const url = `/uploads/${relativePath}`;
-
-    return NextResponse.json({ url, publicId: relativePath });
+    const url = `/uploads/${subfolder}/${fileName}`;
+    return NextResponse.json({ url, publicId: `${subfolder}/${fileName}` });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'فشل الرفع' }, { status: 500 });
   }
@@ -51,13 +41,9 @@ export async function DELETE(req: NextRequest) {
     const { publicId } = await req.json();
     if (!publicId) return NextResponse.json({ error: 'معرف الملف مطلوب' }, { status: 400 });
 
-    const { unlink } = await import('fs/promises');
-    const filePath = join(UPLOAD_DIR, publicId);
-
-    try {
-      await unlink(filePath);
-    } catch {
-      // file may not exist
+    const filePath = path.join(UPLOAD_DIR, publicId);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
     return NextResponse.json({ ok: true });
