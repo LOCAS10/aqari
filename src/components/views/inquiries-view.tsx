@@ -390,7 +390,6 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
                   <SelectItem value="ALL">الكل</SelectItem>
                   {filterType ? (
                     <>
-                      <SelectItem value="SALE">بيع</SelectItem>
                       <SelectItem value="BUY">شراء</SelectItem>
                       <SelectItem value="RENT">كراء</SelectItem>
                       <SelectItem value="MORTGAGE">رهن</SelectItem>
