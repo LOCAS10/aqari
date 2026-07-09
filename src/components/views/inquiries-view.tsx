@@ -52,7 +52,7 @@ import { useAgentContext } from "@/contexts/agent-context";
 
 type InquiryStatus = "NEW" | "CONTACTED" | "FOLLOW_UP" | "CLOSED";
 type InquiryType = "REQUEST" | "OFFER";
-type InquirySubType = "SALE" | "RENT" | "MORTGAGE";
+type InquirySubType = "SALE" | "RENT" | "MORTGAGE" | "BUY";
 
 interface Property {
   id: string;
@@ -122,6 +122,7 @@ const INQUIRY_TYPE_CONFIG: Record<InquiryType, { label: string; className: strin
 
 const INQUIRY_SUBTYPE_CONFIG: Record<InquirySubType, { label: string; className: string }> = {
   SALE: { label: "بيع", className: "bg-red-50 text-red-700 border-red-200" },
+  BUY: { label: "شراء", className: "bg-green-50 text-green-700 border-green-200" },
   RENT: { label: "كراء", className: "bg-cyan-50 text-cyan-700 border-cyan-200" },
   MORTGAGE: { label: "رهن", className: "bg-purple-50 text-purple-700 border-purple-200" },
 };
@@ -390,6 +391,7 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
                   {filterType ? (
                     <>
                       <SelectItem value="SALE">بيع</SelectItem>
+                      <SelectItem value="BUY">شراء</SelectItem>
                       <SelectItem value="RENT">كراء</SelectItem>
                       <SelectItem value="MORTGAGE">رهن</SelectItem>
                     </>
@@ -601,7 +603,7 @@ export default function InquiriesView({ filterType }: InquiriesViewProps) {
                   <SelectContent>
                     {addForm.inquiryType === "REQUEST" ? (
                       <>
-                        <SelectItem value="SALE">طلب شراء</SelectItem>
+                        <SelectItem value="BUY">طلب شراء</SelectItem>
                         <SelectItem value="RENT">طلب كراء</SelectItem>
                         <SelectItem value="MORTGAGE">طلب رهن</SelectItem>
                       </>
