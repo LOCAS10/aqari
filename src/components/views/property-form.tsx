@@ -48,6 +48,7 @@ interface PropertyFormProps {
 }
 
 interface PropertyPayload {
+  title: string;
   description: string;
   propertyType: string;
   transactionType: string;
