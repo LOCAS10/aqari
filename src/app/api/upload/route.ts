@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Local upload directory
+const UPLOAD_DIR = join(process.cwd(), 'public', 'uploads');
+
+// Ensure upload directory exists
+async function ensureUploadDir() {
+  if (!existsSync(UPLOAD_DIR)) {
+    await mkdir(UPLOAD_DIR, { recursive: true });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,32 +21,26 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'لا يوجد ملف' }, { status: 400 });
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_SECRET) {
-      return NextResponse.json({ error: 'Cloudinary غير مهيأ' }, { status: 500 });
-    }
+    await ensureUploadDir();
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const base64 = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    const type = resourceType === 'video' ? 'video' : resourceType === 'audio' ? 'raw' : 'image';
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || (file.type === 'image/png' ? 'png' : file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/webp' ? 'webp' : 'bin');
+    const subfolder = resourceType === 'video' ? 'videos' : resourceType === 'audio' ? 'audios' : 'images';
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const relativePath = `${subfolder}/${uniqueName}`;
+    const fullPath = join(UPLOAD_DIR, subfolder);
 
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload(base64, {
-        resource_type: type as any,
-        folder: 'aqari',
-      }, (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      });
-    });
+    if (!existsSync(fullPath)) {
+      await mkdir(fullPath, { recursive: true });
+    }
 
-    return NextResponse.json({
-      url: result.secure_url,
-      publicId: result.public_id,
-      width: result.width,
-      height: result.height,
-      duration: result.duration,
-    });
+    await writeFile(join(fullPath, uniqueName), buffer);
+
+    const url = `/uploads/${relativePath}`;
+
+    return NextResponse.json({ url, publicId: relativePath });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'فشل الرفع' }, { status: 500 });
   }
@@ -48,24 +48,19 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { publicId, resourceType } = await req.json();
+    const { publicId } = await req.json();
+    if (!publicId) return NextResponse.json({ error: 'معرف الملف مطلوب' }, { status: 400 });
 
-    if (!process.env.CLOUDINARY_API_SECRET) {
-      return NextResponse.json({ error: 'Cloudinary غير مهيأ' }, { status: 500 });
+    const { unlink } = await import('fs/promises');
+    const filePath = join(UPLOAD_DIR, publicId);
+
+    try {
+      await unlink(filePath);
+    } catch {
+      // file may not exist
     }
 
-    const type = resourceType === 'video' ? 'video' : resourceType === 'audio' ? 'raw' : 'image';
-
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.destroy(publicId, {
-        resource_type: type as any,
-      }, (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      });
-    });
-
-    return NextResponse.json(result);
+    return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
