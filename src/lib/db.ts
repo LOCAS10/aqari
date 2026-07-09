@@ -180,8 +180,8 @@ export const property = {
     const d = opts.data;
     const id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
     await query(
-      `INSERT INTO Property (id, title, description, propertyType, transactionType, price, area, location, city, address, rooms, bathrooms, floor, features, status, images, videos, audios, contactPhone, agentId)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Property (id, title, description, propertyType, transactionType, price, area, location, city, address, rooms, bathrooms, floor, features, status, images, videos, audios, contactPhone, agentId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       [id, d.title, d.description, d.propertyType, d.transactionType, d.price, d.area, d.location, d.city, d.address, d.rooms, d.bathrooms, d.floor, d.features, d.status, d.images, d.videos, d.audios, d.contactPhone, d.agentId || null]
     );
     const result = await query('SELECT * FROM Property WHERE id = ?', [id]);
