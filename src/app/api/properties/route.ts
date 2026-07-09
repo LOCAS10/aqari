@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   try {
     await dbReady;
     const body = await req.json();
-    const { property } = await property.create({
+    const { property: createdProperty } = await property.create({
       data: {
         title: body.title,
         description: body.description || null,
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         agentId: body.agentId || null,
       },
     });
-    return NextResponse.json({ property });
+    return NextResponse.json({ property: createdProperty });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
