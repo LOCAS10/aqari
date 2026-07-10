@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { property, inquiry, dbReady } from '@/lib/db';
+import { property, dbReady } from '@/lib/db';
+
+// Prevent caching of this route
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,35 +45,38 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ properties });
   } catch (e: any) {
-    console.error('[POST /api/properties] GET error:', e);
+    console.error('[GET /api/properties] error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[POST /api/properties] Request received');
+
   try {
     await dbReady;
 
-    // Parse body with detailed error logging
+    // Parse body safely
     let body: any;
     try {
-      body = await req.json();
+      const text = await req.text();
+      console.log('[POST /api/properties] Body length:', text.length);
+      body = JSON.parse(text);
     } catch (parseErr: any) {
-      console.error('[POST /api/properties] Failed to parse request body:', parseErr.message);
+      console.error('[POST /api/properties] Failed to parse body:', parseErr.message);
       return NextResponse.json(
         { error: 'فشل في قراءة البيانات المرسلة', details: parseErr.message },
         { status: 400 }
       );
     }
 
-    console.log('[POST /api/properties] Received:', {
+    console.log('[POST /api/properties] Parsed body:', {
       title: body.title,
       propertyType: body.propertyType,
       transactionType: body.transactionType,
       price: body.price,
       hasImages: Array.isArray(body.images) && body.images.length > 0,
       imagesCount: Array.isArray(body.images) ? body.images.length : 0,
-      imagesTotalSize: Array.isArray(body.images) ? body.images.reduce((s: number, i: string) => s + (i?.length || 0), 0) : 0,
     });
 
     // Ensure title is not empty (DB requires NOT NULL)
@@ -103,7 +109,11 @@ export async function POST(req: NextRequest) {
     console.log('[POST /api/properties] Created successfully:', createdProperty.id);
     return NextResponse.json({ property: createdProperty });
   } catch (e: any) {
-    console.error('[POST /api/properties] Error:', e.message, e.stack);
-    return NextResponse.json({ error: e.message, details: 'حدث خطأ أثناء حفظ العقار' }, { status: 500 });
+    console.error('[POST /api/properties] Error:', e.message);
+    console.error('[POST /api/properties] Stack:', e.stack);
+    return NextResponse.json(
+      { error: e.message || 'حدث خطأ غير متوقع', details: 'حدث خطأ أثناء حفظ العقار' },
+      { status: 500 }
+    );
   }
 }

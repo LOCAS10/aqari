@@ -96,16 +96,26 @@ const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/webm"];
 
 // ---------------------------------------------------------------------------
-// Upload helper - pure client-side base64
+// Upload helper - server-side file upload
 // ---------------------------------------------------------------------------
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("فشل في قراءة الملف"));
-    reader.readAsDataURL(file);
+async function uploadFile(file: File, resourceType: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('resourceType', resourceType);
+
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
   });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'فشل في رفع الملف' }));
+    throw new Error(err.error || 'فشل في رفع الملف');
+  }
+
+  const data = await res.json();
+  return data.url;
 }
 
 // ---------------------------------------------------------------------------
@@ -231,31 +241,32 @@ export default function PropertyForm({
   // =========================================================================
   async function handleFileUpload(
     files: FileList | null,
-    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>
+    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>,
+    resourceType: string = 'image'
   ) {
     if (!files || files.length === 0) return;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const tempId = Date.now() + "-" + i;
 
       // Add placeholder
       setter((prev) => [
         ...prev,
-        { url: "", name: file.name, progress: 30, uploading: true },
+        { url: "", name: file.name, progress: 20, uploading: true },
       ]);
 
       try {
-        const base64Url = await fileToBase64(file);
+        // Upload to server
+        const url = await uploadFile(file, resourceType);
         setter((prev) =>
           prev.map((item) =>
             item.name === file.name && item.uploading
-              ? { ...item, url: base64Url, uploading: false, progress: 100 }
+              ? { ...item, url, uploading: false, progress: 100 }
               : item
           )
         );
-      } catch {
-        toast.error(`فشل في قراءة: ${file.name}`);
+      } catch (err: any) {
+        toast.error(`فشل في رفع: ${file.name} - ${err.message}`);
         setter((prev) => prev.filter((item) => !(item.name === file.name && item.uploading)));
       }
     }
@@ -276,11 +287,12 @@ export default function PropertyForm({
 
   function handleDrop(
     e: React.DragEvent,
-    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>
+    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>,
+    resourceType: string = 'image'
   ) {
     e.preventDefault();
     e.stopPropagation();
-    handleFileUpload(e.dataTransfer.files, setter);
+    handleFileUpload(e.dataTransfer.files, setter, resourceType);
   }
 
   // -- audio recording ------------------------------------------------------
@@ -301,13 +313,13 @@ export default function PropertyForm({
         stream.getTracks().forEach((track) => track.stop());
 
         try {
-          const base64Url = await fileToBase64(file);
+          const url = await uploadFile(file, 'audio');
           setAudios((prev) => [
             ...prev,
-            { url: base64Url, name: file.name, progress: 100, uploading: false },
+            { url, name: file.name, progress: 100, uploading: false },
           ]);
-        } catch {
-          toast.error("فشل في حفظ التسجيل الصوتي");
+        } catch (err: any) {
+          toast.error(err.message || "فشل في حفظ التسجيل الصوتي");
         }
       };
 
@@ -422,22 +434,49 @@ export default function PropertyForm({
       const url = editId ? `/api/properties/${editId}` : "/api/properties";
       const method = editId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      console.log("[PropertyForm] Sending request to:", url, "method:", method);
+      console.log("[PropertyForm] Payload size:", JSON.stringify(payload).length, "bytes");
+
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+      } catch (fetchErr: any) {
+        console.error("[PropertyForm] Fetch error:", fetchErr);
+        if (fetchErr.name === 'AbortError') {
+          throw new Error("انتهت مهلة الطلب، حاول مرة أخرى");
+        }
+        throw new Error("خطأ في الاتصال بالخادم: " + (fetchErr.message || "فشل في إرسال الطلب"));
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       console.log("[PropertyForm] Response status:", res.status, res.statusText);
+      console.log("[PropertyForm] Response content-type:", res.headers.get("content-type"));
 
       if (!res.ok) {
         let errorMsg = `خطأ ${res.status}`;
-        try {
-          const errData = await res.json();
-          console.error("[PropertyForm] API error response:", errData);
-          errorMsg = errData.error || errData.details || errorMsg;
-        } catch {
-          console.error("[PropertyForm] Could not parse error response");
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          try {
+            const errData = await res.json();
+            console.error("[PropertyForm] API error response:", errData);
+            errorMsg = errData.error || errData.details || errorMsg;
+          } catch {
+            console.error("[PropertyForm] Could not parse error JSON");
+          }
+        } else {
+          console.error("[PropertyForm] Non-JSON error response, status:", res.status);
+          errorMsg = `خطأ من الخادم (${res.status})`;
         }
         throw new Error(errorMsg);
       }
@@ -728,7 +767,7 @@ export default function PropertyForm({
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, setImages)}
+                onDrop={(e) => handleDrop(e, setImages, 'image')}
                 onClick={() => imageInputRef.current?.click()}
               >
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -745,7 +784,7 @@ export default function PropertyForm({
                   multiple
                   className="hidden"
                   onChange={(e) => {
-                    handleFileUpload(e.target.files, setImages);
+                    handleFileUpload(e.target.files, setImages, 'image');
                     e.target.value = "";
                   }}
                 />
@@ -799,7 +838,7 @@ export default function PropertyForm({
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, setVideos)}
+                onDrop={(e) => handleDrop(e, setVideos, 'video')}
                 onClick={() => videoInputRef.current?.click()}
               >
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -816,7 +855,7 @@ export default function PropertyForm({
                   multiple
                   className="hidden"
                   onChange={(e) => {
-                    handleFileUpload(e.target.files, setVideos);
+                    handleFileUpload(e.target.files, setVideos, 'video');
                     e.target.value = "";
                   }}
                 />
@@ -876,7 +915,7 @@ export default function PropertyForm({
                   multiple
                   className="hidden"
                   onChange={(e) => {
-                    handleFileUpload(e.target.files, setAudios);
+                    handleFileUpload(e.target.files, setAudios, 'audio');
                     e.target.value = "";
                   }}
                 />
@@ -911,7 +950,7 @@ export default function PropertyForm({
               <div
                 className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, setAudios)}
+                onDrop={(e) => handleDrop(e, setAudios, 'audio')}
                 onClick={() => audioInputRef.current?.click()}
               >
                 <p className="text-sm text-muted-foreground">
