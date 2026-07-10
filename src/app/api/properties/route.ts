@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ properties });
   } catch (e: any) {
+    console.error('[POST /api/properties] GET error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
@@ -49,32 +50,60 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbReady;
-    const body = await req.json();
+
+    // Parse body with detailed error logging
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (parseErr: any) {
+      console.error('[POST /api/properties] Failed to parse request body:', parseErr.message);
+      return NextResponse.json(
+        { error: 'فشل في قراءة البيانات المرسلة', details: parseErr.message },
+        { status: 400 }
+      );
+    }
+
+    console.log('[POST /api/properties] Received:', {
+      title: body.title,
+      propertyType: body.propertyType,
+      transactionType: body.transactionType,
+      price: body.price,
+      hasImages: Array.isArray(body.images) && body.images.length > 0,
+      imagesCount: Array.isArray(body.images) ? body.images.length : 0,
+      imagesTotalSize: Array.isArray(body.images) ? body.images.reduce((s: number, i: string) => s + (i?.length || 0), 0) : 0,
+    });
+
+    // Ensure title is not empty (DB requires NOT NULL)
+    const title = body.title?.trim() || 'عقار';
+
     const { property: createdProperty } = await property.create({
       data: {
-        title: body.title,
+        title,
         description: body.description || null,
         propertyType: body.propertyType || 'APARTMENT',
         transactionType: body.transactionType || 'SALE',
         price: parseFloat(body.price) || 0,
-        area: body.area ? parseFloat(body.area) : null,
+        area: body.area != null ? parseFloat(body.area) : null,
         location: body.location || null,
         city: body.city || null,
         address: body.address || null,
-        rooms: body.rooms ? parseInt(body.rooms) : null,
-        bathrooms: body.bathrooms ? parseInt(body.bathrooms) : null,
-        floor: body.floor ? parseInt(body.floor) : null,
+        rooms: body.rooms != null ? parseInt(body.rooms) : null,
+        bathrooms: body.bathrooms != null ? parseInt(body.bathrooms) : null,
+        floor: body.floor != null ? parseInt(body.floor) : null,
         features: body.features ? JSON.stringify(body.features) : null,
         status: body.status || 'AVAILABLE',
-        images: body.images ? JSON.stringify(body.images) : null,
-        videos: body.videos ? JSON.stringify(body.videos) : null,
-        audios: body.audios ? JSON.stringify(body.audios) : null,
+        images: body.images && body.images.length > 0 ? JSON.stringify(body.images) : null,
+        videos: body.videos && body.videos.length > 0 ? JSON.stringify(body.videos) : null,
+        audios: body.audios && body.audios.length > 0 ? JSON.stringify(body.audios) : null,
         contactPhone: body.contactPhone || null,
         agentId: body.agentId || null,
       },
     });
+
+    console.log('[POST /api/properties] Created successfully:', createdProperty.id);
     return NextResponse.json({ property: createdProperty });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    console.error('[POST /api/properties] Error:', e.message, e.stack);
+    return NextResponse.json({ error: e.message, details: 'حدث خطأ أثناء حفظ العقار' }, { status: 500 });
   }
 }

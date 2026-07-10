@@ -1,11 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,8 +28,6 @@ import {
   MicOff,
   Trash2,
   Loader2,
-  Plus,
-  Paperclip,
 } from "lucide-react";
 import { useAgentContext } from "@/contexts/agent-context";
 
@@ -47,38 +41,11 @@ interface PropertyFormProps {
   onCancel: () => void;
 }
 
-interface PropertyPayload {
-  title: string;
-  description: string;
-  propertyType: string;
-  transactionType: string;
-  price: number | null;
-  area: number | null;
-  address: string;
-  location: string;
-  rooms: number | null;
-  bathrooms: number | null;
-  floor: number | null;
-  features: string[];
-  status: string;
-  contactPhone: string;
-  agentId: string | null;
-  images: string[];
-  videos: string[];
-  audios: string[];
-}
-
 interface UploadedFile {
   url: string;
-  file?: File;
   name: string;
   progress: number;
   uploading: boolean;
-}
-
-interface FeatureOption {
-  value: string;
-  label: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +76,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "RENTED", label: "مؤجر" },
 ];
 
-const FEATURE_OPTIONS: FeatureOption[] = [
+const FEATURE_OPTIONS: { value: string; label: string }[] = [
   { value: "elevator", label: "مصعد" },
   { value: "parking", label: "موقف سيارات" },
   { value: "garden", label: "حديقة" },
@@ -129,31 +96,16 @@ const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/webm"];
 
 // ---------------------------------------------------------------------------
-// Upload helper
+// Upload helper - pure client-side base64
 // ---------------------------------------------------------------------------
 
-async function uploadFile(
-  file: File,
-  resourceType: string,
-  onProgress?: (percent: number) => void
-): Promise<{ url: string } | null> {
-  try {
-    // Convert file to base64 locally (no server upload needed)
-    if (onProgress) onProgress(50);
-    
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    if (onProgress) onProgress(100);
-    return { url: dataUrl };
-  } catch {
-    toast.error("فشل في قراءة الملف");
-    return null;
-  }
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("فشل في قراءة الملف"));
+    reader.readAsDataURL(file);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -168,19 +120,19 @@ export default function PropertyForm({
   const queryClient = useQueryClient();
 
   // -- form state -----------------------------------------------------------
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [transactionType, setTransactionType] = useState("");
   const [price, setPrice] = useState("");
   const [area, setArea] = useState("");
-  // city removed
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [rooms, setRooms] = useState("");
   const [bathrooms, setBathrooms] = useState("");
   const [floor, setFloor] = useState("");
   const [features, setFeatures] = useState<string[]>([]);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("AVAILABLE");
   const [contactPhone, setContactPhone] = useState("");
 
   // -- media state ----------------------------------------------------------
@@ -200,12 +152,13 @@ export default function PropertyForm({
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // =========================================================================
+  // -- saving state ---------------------------------------------------------
+  const [isSaving, setIsSaving] = useState(false);
+
   // Auto-assign current agent from PIN login
   const { agentId: currentAgentId } = useAgentContext();
 
   // Fetch property for editing
-  // =========================================================================
   const { data: editProperty, isLoading: isLoadingProperty } = useQuery({
     queryKey: ["property", editId],
     queryFn: async () => {
@@ -216,107 +169,56 @@ export default function PropertyForm({
     enabled: !!editId,
   });
 
+  // Load edit data
   useEffect(() => {
-    if (editProperty) {
-      setDescription(editProperty.description ?? "");
-      setPropertyType(editProperty.propertyType ?? "");
-      setTransactionType(editProperty.transactionType ?? "");
-      setPrice(editProperty.price != null ? String(editProperty.price) : "");
-      setArea(editProperty.area != null ? String(editProperty.area) : "");
-      // city removed
-      setAddress(editProperty.address ?? "");
-      setLocation(editProperty.location ?? "");
-      setRooms(editProperty.rooms != null ? String(editProperty.rooms) : "");
-      setBathrooms(
-        editProperty.bathrooms != null ? String(editProperty.bathrooms) : ""
-      );
-      setFloor(editProperty.floor != null ? String(editProperty.floor) : "");
-      try {
-        const parsed = typeof editProperty.features === 'string' ? JSON.parse(editProperty.features) : (editProperty.features ?? []);
-        setFeatures(Array.isArray(parsed) ? parsed : []);
-      } catch {
-        setFeatures([]);
+    if (!editProperty?.property) return;
+    const p = editProperty.property;
+    setTitle(p.title ?? "");
+    setDescription(p.description ?? "");
+    setPropertyType(p.propertyType ?? "");
+    setTransactionType(p.transactionType ?? "");
+    setPrice(p.price != null ? String(p.price) : "");
+    setArea(p.area != null ? String(p.area) : "");
+    setAddress(p.address ?? "");
+    setLocation(p.location ?? "");
+    setRooms(p.rooms != null ? String(p.rooms) : "");
+    setBathrooms(p.bathrooms != null ? String(p.bathrooms) : "");
+    setFloor(p.floor != null ? String(p.floor) : "");
+    setStatus(p.status ?? "AVAILABLE");
+    setContactPhone(p.contactPhone ?? "");
+
+    const safeParse = (val: any): any[] => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === "string") {
+        try { return JSON.parse(val); } catch { return []; }
       }
-      setStatus(editProperty.status ?? "");
-      setContactPhone(editProperty.contactPhone ?? "");
-      try {
-        const parsedImages = typeof editProperty.images === 'string' ? JSON.parse(editProperty.images) : (editProperty.images ?? []);
-        setImages((Array.isArray(parsedImages) ? parsedImages : []).map((url: string, i: number) => ({
-          url,
-          name: `صورة ${i + 1}`,
-          progress: 100,
-          uploading: false,
-        })));
-      } catch { setImages([]); }
-      try {
-        const parsedVideos = typeof editProperty.videos === 'string' ? JSON.parse(editProperty.videos) : (editProperty.videos ?? []);
-        setVideos((Array.isArray(parsedVideos) ? parsedVideos : []).map((url: string, i: number) => ({
-          url,
-          name: `فيديو ${i + 1}`,
-          progress: 100,
-          uploading: false,
-        })));
-      } catch { setVideos([]); }
-      try {
-        const parsedAudios = typeof editProperty.audios === 'string' ? JSON.parse(editProperty.audios) : (editProperty.audios ?? []);
-        setAudios((Array.isArray(parsedAudios) ? parsedAudios : []).map((url: string, i: number) => ({
-          url,
-          name: `تسجيل ${i + 1}`,
-          progress: 100,
-          uploading: false,
-        })));
-      } catch { setAudios([]); }
-    }
+      return [];
+    };
+
+    setFeatures(safeParse(p.features));
+    setImages(safeParse(p.images).map((url: string, i: number) => ({
+      url, name: `صورة ${i + 1}`, progress: 100, uploading: false,
+    })));
+    setVideos(safeParse(p.videos).map((url: string, i: number) => ({
+      url, name: `فيديو ${i + 1}`, progress: 100, uploading: false,
+    })));
+    setAudios(safeParse(p.audios).map((url: string, i: number) => ({
+      url, name: `تسجيل ${i + 1}`, progress: 100, uploading: false,
+    })));
   }, [editProperty]);
 
   // =========================================================================
-  // Save mutation
-  // =========================================================================
-  const saveMutation = useMutation({
-    mutationFn: async (payload: PropertyPayload) => {
-      if (editId) {
-        const res = await fetch(`/api/properties/${editId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || err.message || "فشل في تحديث العقار");
-        }
-        return res.json();
-      } else {
-        const res = await fetch("/api/properties", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error || err.message || "فشل في إضافة العقار");
-        }
-        return res.json();
-      }
-    },
-    onSuccess: () => {
-      toast.success(editId ? "تم تحديث العقار بنجاح" : "تم إضافة العقار بنجاح");
-      queryClient.invalidateQueries({ queryKey: ["properties"] });
-      if (editId) {
-        queryClient.invalidateQueries({ queryKey: ["property", editId] });
-      }
-      onSaved();
-    },
-    onError: (err: Error) => {
-      toast.error(err.message);
-    },
-  });
-
-  // =========================================================================
-  // Handlers
+  // Conditional display logic
   // =========================================================================
   const isApartmentOrVilla =
-    propertyType === "APARTMENT" || propertyType === "VILLA" || propertyType === "FURNISHED_APARTMENT" || propertyType === "FURNISHED_VILLA";
-  const isApartment = propertyType === "APARTMENT" || propertyType === "FURNISHED_APARTMENT";
+    propertyType === "APARTMENT" ||
+    propertyType === "VILLA" ||
+    propertyType === "FURNISHED_APARTMENT" ||
+    propertyType === "FURNISHED_VILLA";
+
+  const isApartment =
+    propertyType === "APARTMENT" ||
+    propertyType === "FURNISHED_APARTMENT";
 
   const toggleFeature = useCallback((value: string) => {
     setFeatures((prev) =>
@@ -324,56 +226,37 @@ export default function PropertyForm({
     );
   }, []);
 
-  // -- media upload helpers -------------------------------------------------
-
-  function updateMediaItem(
-    setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>,
-    index: number,
-    update: Partial<UploadedFile>
-  ) {
-    setter((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, ...update } : item))
-    );
-  }
-
+  // =========================================================================
+  // Media upload helpers
+  // =========================================================================
   async function handleFileUpload(
     files: FileList | null,
-    resourceType: "image" | "video" | "audio",
     setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>
   ) {
     if (!files || files.length === 0) return;
 
-    const newItems: UploadedFile[] = Array.from(files).map((file) => ({
-      url: "",
-      file,
-      name: file.name,
-      progress: 0,
-      uploading: true,
-    }));
-
-    setter((prev) => [...prev, ...newItems]);
-
-    const startIndex = (setter === setImages ? images : setter === setVideos ? videos : audios).length;
-
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const globalIndex = startIndex + i;
+      const tempId = Date.now() + "-" + i;
 
-      const result = await uploadFile(file, resourceType, (percent) => {
-        updateMediaItem(setter, globalIndex, { progress: percent });
-      });
+      // Add placeholder
+      setter((prev) => [
+        ...prev,
+        { url: "", name: file.name, progress: 30, uploading: true },
+      ]);
 
-      if (result) {
-        updateMediaItem(setter, globalIndex, {
-          url: result.url,
-          uploading: false,
-          progress: 100,
-        });
-      } else {
-        // Remove the failed item
+      try {
+        const base64Url = await fileToBase64(file);
         setter((prev) =>
-          prev.filter((_, idx) => idx !== globalIndex)
+          prev.map((item) =>
+            item.name === file.name && item.uploading
+              ? { ...item, url: base64Url, uploading: false, progress: 100 }
+              : item
+          )
         );
+      } catch {
+        toast.error(`فشل في قراءة: ${file.name}`);
+        setter((prev) => prev.filter((item) => !(item.name === file.name && item.uploading)));
       }
     }
   }
@@ -386,7 +269,6 @@ export default function PropertyForm({
   }
 
   // -- drag & drop ----------------------------------------------------------
-
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -394,16 +276,14 @@ export default function PropertyForm({
 
   function handleDrop(
     e: React.DragEvent,
-    resourceType: "image" | "video" | "audio",
     setter: React.Dispatch<React.SetStateAction<UploadedFile[]>>
   ) {
     e.preventDefault();
     e.stopPropagation();
-    handleFileUpload(e.dataTransfer.files, resourceType, setter);
+    handleFileUpload(e.dataTransfer.files, setter);
   }
 
   // -- audio recording ------------------------------------------------------
-
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -412,48 +292,22 @@ export default function PropertyForm({
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const file = new File([blob], `تسجيل-${Date.now()}.webm`, {
-          type: "audio/webm",
-        });
-
+        const file = new File([blob], `تسجيل-${Date.now()}.webm`, { type: "audio/webm" });
         stream.getTracks().forEach((track) => track.stop());
 
-        const newAudio: UploadedFile = {
-          url: "",
-          file,
-          name: file.name,
-          progress: 0,
-          uploading: true,
-        };
-
-        const currentLength = audios.length;
-        setAudios((prev) => [...prev, newAudio]);
-
-        const result = await uploadFile(file, "audio", (percent) => {
-          setAudios((prev) =>
-            prev.map((a, i) =>
-              i === currentLength ? { ...a, progress: percent } : a
-            )
-          );
-        });
-
-        if (result) {
-          setAudios((prev) =>
-            prev.map((a, i) =>
-              i === currentLength
-                ? { ...a, url: result.url, uploading: false, progress: 100 }
-                : a
-            )
-          );
-        } else {
-          setAudios((prev) => prev.filter((_, i) => i !== currentLength));
+        try {
+          const base64Url = await fileToBase64(file);
+          setAudios((prev) => [
+            ...prev,
+            { url: base64Url, name: file.name, progress: 100, uploading: false },
+          ]);
+        } catch {
+          toast.error("فشل في حفظ التسجيل الصوتي");
         }
       };
 
@@ -466,7 +320,7 @@ export default function PropertyForm({
     } catch {
       toast.error("لم يتم السماح بالوصول إلى الميكروفون");
     }
-  }, [audios.length]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -483,18 +337,13 @@ export default function PropertyForm({
   // Cleanup recording on unmount
   useEffect(() => {
     return () => {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-      if (mediaRecorderRef.current && isRecording) {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (mediaRecorderRef.current?.stream) {
         mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
-        mediaRecorderRef.current.stop();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // -- format duration ------------------------------------------------------
   function formatDuration(seconds: number): string {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -502,12 +351,12 @@ export default function PropertyForm({
   }
 
   // =========================================================================
-  // Submit
+  // Submit - using plain fetch for maximum reliability
   // =========================================================================
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
+    // Validate
     if (!propertyType) {
       toast.error("يرجى اختيار نوع العقار");
       return;
@@ -521,42 +370,91 @@ export default function PropertyForm({
       return;
     }
 
-    // Auto-generate title from type + address
-    const finalTitle = `${PROPERTY_TYPE_OPTIONS.find(t => t.value === propertyType)?.label || "عقار"}${address.trim() ? " - " + address.trim() : ""}`;
-
-    // Check if any media is still uploading
+    // Check if media is still uploading
     const stillUploading =
-      images.some((i) => i.uploading) ||
-      videos.some((v) => v.uploading) ||
-      audios.some((a) => a.uploading);
+      images.some((img) => img.uploading) ||
+      videos.some((vid) => vid.uploading) ||
+      audios.some((aud) => aud.uploading);
     if (stillUploading) {
       toast.error("يرجى الانتظار حتى اكتمال رفع جميع الملفات");
       return;
     }
 
-    const payload: PropertyPayload = {
+    // Build title if empty
+    const finalTitle =
+      title.trim() ||
+      `${PROPERTY_TYPE_OPTIONS.find((t) => t.value === propertyType)?.label || "عقار"}${address.trim() ? " - " + address.trim() : ""}`;
+
+    const payload = {
       title: finalTitle,
-      description: description.trim(),
+      description: description.trim() || null,
       propertyType,
       transactionType,
-      price: price ? Number(price) : null,
+      price: Number(price) || 0,
       area: area ? Number(area) : null,
-      city: "",
-      address: address.trim(),
-      location: location.trim(),
+      city: null,
+      address: address.trim() || null,
+      location: location.trim() || null,
       rooms: rooms ? Number(rooms) : null,
       bathrooms: bathrooms ? Number(bathrooms) : null,
       floor: floor ? Number(floor) : null,
-      features,
-      status,
-      contactPhone: contactPhone.trim(),
-      agentId: editId ? (editProperty as any)?.agentId || null : currentAgentId || null,
+      features: features.length > 0 ? features : [],
+      status: status || "AVAILABLE",
+      contactPhone: contactPhone.trim() || null,
+      agentId: editId ? (editProperty as any)?.property?.agentId || null : currentAgentId || null,
       images: images.map((i) => i.url).filter(Boolean),
       videos: videos.map((v) => v.url).filter(Boolean),
       audios: audios.map((a) => a.url).filter(Boolean),
     };
 
-    saveMutation.mutate(payload);
+    console.log("[PropertyForm] Submitting payload:", {
+      title: payload.title,
+      propertyType: payload.propertyType,
+      transactionType: payload.transactionType,
+      price: payload.price,
+      imagesCount: payload.images.length,
+      videosCount: payload.videos.length,
+      agentId: payload.agentId,
+    });
+
+    setIsSaving(true);
+    try {
+      const url = editId ? `/api/properties/${editId}` : "/api/properties";
+      const method = editId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      console.log("[PropertyForm] Response status:", res.status, res.statusText);
+
+      if (!res.ok) {
+        let errorMsg = `خطأ ${res.status}`;
+        try {
+          const errData = await res.json();
+          console.error("[PropertyForm] API error response:", errData);
+          errorMsg = errData.error || errData.details || errorMsg;
+        } catch {
+          console.error("[PropertyForm] Could not parse error response");
+        }
+        throw new Error(errorMsg);
+      }
+
+      const data = await res.json();
+      console.log("[PropertyForm] Success:", data.property?.id);
+
+      toast.success(editId ? "تم تحديث العقار بنجاح" : "تم إضافة العقار بنجاح");
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      if (editId) queryClient.invalidateQueries({ queryKey: ["property", editId] });
+      onSaved();
+    } catch (err: any) {
+      console.error("[PropertyForm] Submit error:", err);
+      toast.error(err.message || "فشل في حفظ العقار");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // =========================================================================
@@ -592,6 +490,17 @@ export default function PropertyForm({
             <div className="space-y-5">
               <h3 className="text-lg font-semibold border-b pb-2">المعلومات الأساسية</h3>
 
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">العنوان</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="يتم توليده تلقائياً من نوع العقار والعنوان"
+                />
+              </div>
+
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">الوصف</Label>
@@ -612,12 +521,9 @@ export default function PropertyForm({
                     value={propertyType}
                     onValueChange={(val) => {
                       setPropertyType(val);
-                      // Reset conditional fields when type changes
-                      if (val !== "APARTMENT" && val !== "VILLA" && val !== "FURNISHED_APARTMENT" && val !== "FURNISHED_VILLA") {
+                      if (!["APARTMENT", "VILLA", "FURNISHED_APARTMENT", "FURNISHED_VILLA"].includes(val)) {
                         setRooms("");
                         setBathrooms("");
-                      }
-                      if (val !== "APARTMENT" && val !== "FURNISHED_APARTMENT") {
                         setFloor("");
                       }
                     }}
@@ -637,10 +543,7 @@ export default function PropertyForm({
 
                 <div className="space-y-2">
                   <Label>نوع العملية</Label>
-                  <Select
-                    value={transactionType}
-                    onValueChange={setTransactionType}
-                  >
+                  <Select value={transactionType} onValueChange={setTransactionType}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="اختر نوع العملية" />
                     </SelectTrigger>
@@ -822,11 +725,10 @@ export default function PropertyForm({
                 الصور
               </h3>
 
-              {/* Drag & Drop Zone */}
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, "image", setImages)}
+                onDrop={(e) => handleDrop(e, setImages)}
                 onClick={() => imageInputRef.current?.click()}
               >
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -842,11 +744,13 @@ export default function PropertyForm({
                   accept={ACCEPTED_IMAGE_TYPES.join(",")}
                   multiple
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e.target.files, "image", setImages)}
+                  onChange={(e) => {
+                    handleFileUpload(e.target.files, setImages);
+                    e.target.value = "";
+                  }}
                 />
               </div>
 
-              {/* Thumbnails */}
               {images.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {images.map((img, idx) => (
@@ -881,8 +785,6 @@ export default function PropertyForm({
                   ))}
                 </div>
               )}
-
-
             </div>
 
             {/* ---------------------------------------------------------------- */}
@@ -894,11 +796,10 @@ export default function PropertyForm({
                 الفيديوهات
               </h3>
 
-              {/* Drag & Drop Zone */}
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, "video", setVideos)}
+                onDrop={(e) => handleDrop(e, setVideos)}
                 onClick={() => videoInputRef.current?.click()}
               >
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -914,11 +815,13 @@ export default function PropertyForm({
                   accept={ACCEPTED_VIDEO_TYPES.join(",")}
                   multiple
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e.target.files, "video", setVideos)}
+                  onChange={(e) => {
+                    handleFileUpload(e.target.files, setVideos);
+                    e.target.value = "";
+                  }}
                 />
               </div>
 
-              {/* Video Items */}
               {videos.length > 0 && (
                 <div className="space-y-2">
                   {videos.map((vid, idx) => (
@@ -931,16 +834,6 @@ export default function PropertyForm({
                         <p className="text-sm truncate">{vid.name}</p>
                         {vid.uploading && (
                           <Progress value={vid.progress} className="h-1.5 mt-1" />
-                        )}
-                        {vid.url && !vid.uploading && (
-                          <a
-                            href={vid.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary underline"
-                          >
-                            معاينة
-                          </a>
                         )}
                       </div>
                       <Button
@@ -956,8 +849,6 @@ export default function PropertyForm({
                   ))}
                 </div>
               )}
-
-
             </div>
 
             {/* ---------------------------------------------------------------- */}
@@ -969,7 +860,6 @@ export default function PropertyForm({
                 التسجيلات الصوتية
               </h3>
 
-              {/* Upload & Record Buttons */}
               <div className="flex flex-wrap gap-3">
                 <Button
                   type="button"
@@ -985,7 +875,10 @@ export default function PropertyForm({
                   accept={ACCEPTED_AUDIO_TYPES.join(",")}
                   multiple
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e.target.files, "audio", setAudios)}
+                  onChange={(e) => {
+                    handleFileUpload(e.target.files, setAudios);
+                    e.target.value = "";
+                  }}
                 />
 
                 {isRecording ? (
@@ -1015,11 +908,10 @@ export default function PropertyForm({
                 )}
               </div>
 
-              {/* Drag & Drop Zone for audio */}
               <div
                 className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, "audio", setAudios)}
+                onDrop={(e) => handleDrop(e, setAudios)}
                 onClick={() => audioInputRef.current?.click()}
               >
                 <p className="text-sm text-muted-foreground">
@@ -1027,7 +919,6 @@ export default function PropertyForm({
                 </p>
               </div>
 
-              {/* Audio Items */}
               {audios.length > 0 && (
                 <div className="space-y-2">
                   {audios.map((aud, idx) => (
@@ -1044,7 +935,6 @@ export default function PropertyForm({
                         {aud.url && !aud.uploading && (
                           <audio controls className="mt-1 w-full max-w-sm h-8">
                             <source src={aud.url} />
-                            المتصفح لا يدعم العنصر الصوتي
                           </audio>
                         )}
                       </div>
@@ -1061,11 +951,7 @@ export default function PropertyForm({
                   ))}
                 </div>
               )}
-
-
             </div>
-
-            {/* Agent auto-assigned */}
 
             {/* ---------------------------------------------------------------- */}
             {/* Submit Actions                                                   */}
@@ -1075,16 +961,16 @@ export default function PropertyForm({
                 type="button"
                 variant="outline"
                 onClick={onCancel}
-                disabled={saveMutation.isPending}
+                disabled={isSaving}
               >
                 <X className="h-4 w-4 ml-2" />
                 إلغاء
               </Button>
               <Button
                 type="submit"
-                disabled={saveMutation.isPending}
+                disabled={isSaving}
               >
-                {saveMutation.isPending ? (
+                {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 ml-2 animate-spin" />
                     جاري الحفظ...
