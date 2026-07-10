@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,8 +14,6 @@ import NotificationsView from "@/components/views/notifications-view";
 import { PinLoginScreen } from "@/components/pin-login-screen";
 import { useCurrentAgent } from "@/hooks/useCurrentAgent";
 import { AgentContext } from "@/contexts/agent-context";
-
-const qc = new QueryClient();
 
 // Context to share current agent across components
 function AppContent() {
@@ -50,14 +48,7 @@ function AppContent() {
   }
 
   if (!agent) {
-    return (
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-        <QueryClientProvider client={qc}>
-          <PinLoginScreen onLogin={() => {}} />
-          <Toaster position="top-center" richColors />
-        </QueryClientProvider>
-      </ThemeProvider>
-    );
+    return <PinLoginScreen onLogin={() => {}} />;
   }
 
   const agentContextValue = {
@@ -100,9 +91,19 @@ function AppContent() {
 }
 
 export default function Home() {
+  const queryClient = useMemo(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        staleTime: 30000,
+        refetchOnWindowFocus: false,
+      },
+    },
+  }), []);
+
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <QueryClientProvider client={qc}>
+      <QueryClientProvider client={queryClient}>
         <AppContent />
         <Toaster position="top-center" richColors />
       </QueryClientProvider>
